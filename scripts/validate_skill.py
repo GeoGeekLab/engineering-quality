@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate repository structure, skill metadata, local links, and evaluation fixtures."""
+"""Validate repository structure, skill metadata, links, versioning, and evaluation fixtures."""
 
 from __future__ import annotations
 
@@ -11,12 +11,16 @@ from urllib.parse import unquote
 
 ROOT = Path(__file__).resolve().parents[1]
 NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+SEMVER_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 LINK_RE = re.compile(r"!?(?:\[[^\]]*\])\(([^)]+)\)")
 REQUIRED_PATHS = (
     "SKILL.md",
+    "VERSION",
+    "CHANGELOG.md",
     "references/principles.md",
     "references/verification.md",
     "references/review-rubric.md",
+    "references/language-profiles.md",
     "workflows/feature.md",
     "workflows/bug-fix.md",
     "workflows/refactor.md",
@@ -24,6 +28,14 @@ REQUIRED_PATHS = (
     "workflows/debug.md",
     "workflows/performance.md",
     "evals/cases.json",
+    "evals/schema.json",
+    "evals/README.md",
+    "docs/compatibility.md",
+    "docs/release.md",
+    "scripts/project_checks.py",
+    "scripts/package_skill.py",
+    "scripts/release_check.py",
+    "scripts/release_notes.py",
 )
 
 
@@ -87,6 +99,25 @@ def validate_structure(root: Path) -> list[str]:
     ]
 
 
+def validate_version(root: Path) -> list[str]:
+    path = root / "VERSION"
+    try:
+        version = path.read_text(encoding="utf-8").strip()
+    except (OSError, UnicodeError) as exc:
+        return [f"VERSION: cannot read file: {exc}"]
+
+    errors: list[str] = []
+    if not SEMVER_RE.fullmatch(version):
+        errors.append("VERSION: expected stable semantic version X.Y.Z")
+
+    changelog = root / "CHANGELOG.md"
+    if changelog.is_file() and SEMVER_RE.fullmatch(version):
+        text = changelog.read_text(encoding="utf-8")
+        if not re.search(rf"(?m)^## {re.escape(version)} - \d{{4}}-\d{{2}}-\d{{2}}$", text):
+            errors.append(f"CHANGELOG.md: missing dated section for {version}")
+    return errors
+
+
 def _local_target(markdown: Path, raw_target: str) -> Path | None:
     target = raw_target.strip().strip("<>")
     if not target or target.startswith("#"):
@@ -130,16 +161,25 @@ def validate_markdown_links(root: Path) -> list[str]:
 
 
 def validate_evals(root: Path) -> list[str]:
-    path = root / "evals" / "cases.json"
+    cases_path = root / "evals" / "cases.json"
+    schema_path = root / "evals" / "schema.json"
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
+        data = json.loads(cases_path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         return [f"evals/cases.json: invalid JSON: {exc}"]
 
-    if not isinstance(data, list) or not data:
-        return ["evals/cases.json: expected a non-empty list"]
+    try:
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        return [f"evals/schema.json: invalid JSON: {exc}"]
 
     errors: list[str] = []
+    if not isinstance(schema, dict) or schema.get("type") != "array":
+        errors.append("evals/schema.json: expected an array schema")
+
+    if not isinstance(data, list) or not data:
+        return errors + ["evals/cases.json: expected a non-empty list"]
+
     seen: set[str] = set()
     required = ("id", "task", "must_do", "must_not_do")
 
@@ -148,6 +188,10 @@ def validate_evals(root: Path) -> list[str]:
         if not isinstance(case, dict):
             errors.append(f"{label}: expected object")
             continue
+
+        extra = sorted(set(case) - set(required))
+        if extra:
+            errors.append(f"{label}: unsupported keys: {', '.join(extra)}")
 
         for key in required:
             if key not in case:
@@ -178,7 +222,9 @@ def validate_repository(root: Path = ROOT) -> list[str]:
     errors.extend(validate_structure(root))
     if (root / "SKILL.md").exists():
         errors.extend(validate_frontmatter(root))
-    if (root / "evals" / "cases.json").exists():
+    if (root / "VERSION").exists():
+        errors.extend(validate_version(root))
+    if (root / "evals" / "cases.json").exists() and (root / "evals" / "schema.json").exists():
         errors.extend(validate_evals(root))
     errors.extend(validate_markdown_links(root))
     return errors

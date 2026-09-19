@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import tempfile
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -24,6 +24,14 @@ class ValidateSkillTests(unittest.TestCase):
             )
             errors = validate_skill.validate_frontmatter(root)
             self.assertTrue(any("kebab-case" in error for error in errors))
+
+    def test_version_requires_semver(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "VERSION").write_text("v1.1\n", encoding="utf-8")
+            (root / "CHANGELOG.md").write_text("# Changelog\n", encoding="utf-8")
+            errors = validate_skill.validate_version(root)
+            self.assertTrue(any("semantic version" in error for error in errors))
 
     def test_local_link_validation_detects_missing_file(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

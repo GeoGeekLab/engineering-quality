@@ -2,6 +2,9 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
+      - "release/**"
   pull_request:
 
 permissions:
@@ -27,5 +30,31 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Validate and test
+      - name: Validate, test, and verify release invariants
         run: make check
+
+  package:
+    needs: quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Build distribution
+        run: make package
+
+      - name: Verify package checksum
+        run: cd dist && sha256sum -c *.zip.sha256
+
+      - name: Upload distribution artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: engineering-quality-dist
+          path: dist/
+          if-no-files-found: error

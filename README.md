@@ -7,6 +7,7 @@
 `correctness → coherence → verification → evidence`
 
 [![CI](https://github.com/GeoGeekLab/engineering-quality/actions/workflows/ci.yml/badge.svg)](https://github.com/GeoGeekLab/engineering-quality/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/GeoGeekLab/engineering-quality?style=flat-square)](https://github.com/GeoGeekLab/engineering-quality/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f?style=flat-square)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.12%20%7C%203.14-3776AB?style=flat-square&logo=python&logoColor=white)](.github/workflows/ci.yml)
 [![Codex](https://img.shields.io/badge/Codex-ready-111111?style=flat-square&logo=openai&logoColor=white)](#codex--one-instruction)
@@ -86,19 +87,22 @@ Start a new Claude Code session after installation if the skill is not picked up
 
 ### ChatGPT
 
-Download the repository as a skill package:
+For the cleanest installation, use the packaged ZIP attached to the latest GitHub Release:
 
-**[Download engineering-quality.zip](https://github.com/GeoGeekLab/engineering-quality/archive/refs/heads/main.zip)**
+**[Open the latest release](https://github.com/GeoGeekLab/engineering-quality/releases/latest)**
 
-Then in ChatGPT:
+For a development checkout, build the same package locally:
 
-1. Open **Plugins** → **Skills**.
-2. Choose **Create** → **Upload from your computer**.
-3. Upload the ZIP package.
-4. Review the scan result and make the skill available in the workspace.
+```bash
+make package
+```
+
+Then upload `dist/engineering-quality-<version>.zip` through the ChatGPT Skills interface available to your workspace.
 
 > [!NOTE]
 > ChatGPT Skills availability depends on the workspace plan, admin settings, and current product availability.
+
+See [docs/compatibility.md](docs/compatibility.md) for the maintained host compatibility matrix and installation details.
 
 Platform references: [Codex Skills](https://developers.openai.com/docs/build-skills) · [ChatGPT Skills](https://help.openai.com/en/articles/20001066) · [Claude Skills](https://www.anthropic.com/research/skills) · [skills CLI](https://github.com/vercel-labs/skills)
 
@@ -124,6 +128,7 @@ The core skill stays compact and loads deeper guidance only when the task requir
 ```text
 engineering-quality/
 ├── SKILL.md                     # entry contract + routing
+├── VERSION                      # canonical release version
 ├── workflows/
 │   ├── feature.md
 │   ├── bug-fix.md
@@ -142,14 +147,24 @@ engineering-quality/
 │   └── language-profiles.md
 ├── scripts/
 │   ├── project_checks.py
-│   └── validate_skill.py
+│   ├── validate_skill.py
+│   ├── package_skill.py
+│   ├── release_check.py
+│   └── release_notes.py
 ├── tests/
 ├── evals/
+│   ├── cases.json
+│   ├── schema.json
+│   └── README.md
 ├── docs/
+│   ├── compatibility.md
 │   ├── foundations.md
+│   ├── release.md
 │   └── assets/
 │       └── architecture.svg
-└── .github/workflows/ci.yml
+└── .github/workflows/
+    ├── ci.yml
+    └── release.yml
 ```
 
 ### Progressive loading
@@ -191,15 +206,35 @@ make check
 The validation pipeline covers:
 
 ```text
-metadata
-  ├── repository structure
-  ├── local Markdown links
-  ├── evaluation fixtures
+repository integrity
+  ├── skill metadata + local links
+  ├── VERSION + CHANGELOG consistency
+  ├── evaluation fixtures + schema
   ├── Python compilation
-  └── unit tests
+  ├── unit tests
+  ├── deterministic package verification
+  └── release-readiness invariants
 ```
 
-CI runs the same contract across Python **3.10**, **3.12**, and **3.14**.
+CI runs the contract across Python **3.10**, **3.12**, and **3.14**, then builds and verifies the distribution artifact.
+
+### Build a clean distribution
+
+```bash
+make package
+```
+
+Produces:
+
+```text
+dist/
+├── engineering-quality-<version>.zip
+└── engineering-quality-<version>.zip.sha256
+```
+
+The ZIP contains only the runtime skill payload and an internal `MANIFEST.sha256`. Tests, CI configuration, README content, and release tooling are intentionally excluded.
+
+Tagged releases are automated. See [docs/release.md](docs/release.md).
 
 ## Quality model
 
