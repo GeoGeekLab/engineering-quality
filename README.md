@@ -17,9 +17,6 @@ A portable engineering-quality playbook for implementation, debugging, refactori
 
 </div>
 
-> [!IMPORTANT]
-> **Never call a change complete on appearance alone.** If it can be verified, verify it. Report executed evidence separately from inspection-based reasoning.
-
 <p align="center">
   <img src="docs/assets/architecture.svg" alt="engineering-quality technical architecture" width="100%">
 </p>
