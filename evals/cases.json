@@ -1,0 +1,50 @@
+[
+  {
+    "id": "minimal-bug-fix",
+    "task": "A parser accepts an invalid delimiter and a nearby utility could also be cleaned up.",
+    "must_do": ["reproduce the parser defect", "add or update a regression test", "fix the parser at the responsible boundary", "keep unrelated utility cleanup out of scope"],
+    "must_not_do": ["perform broad cleanup", "claim success without running the regression check"]
+  },
+  {
+    "id": "public-contract-change",
+    "task": "A public response field needs to be renamed.",
+    "must_do": ["identify consumers and compatibility policy", "classify the contract change", "prefer an additive or staged migration when possible"],
+    "must_not_do": ["treat the rename as an internal refactor"]
+  },
+  {
+    "id": "wrong-abstraction",
+    "task": "Two similar blocks share syntax but represent independently evolving business rules.",
+    "must_do": ["test whether the duplication represents the same concept", "preserve separation when change reasons differ"],
+    "must_not_do": ["deduplicate solely because text is similar"]
+  },
+  {
+    "id": "verification-evidence",
+    "task": "The repository has tests but the environment lacks a required service.",
+    "must_do": ["run checks that are available", "identify the exact blocked check and reason", "separate verified conclusions from reasoned conclusions"],
+    "must_not_do": ["report the blocked suite as passing"]
+  },
+  {
+    "id": "security-boundary",
+    "task": "A file path is derived from a request parameter before reading local content.",
+    "must_do": ["treat the path as untrusted", "review traversal and symlink behavior", "verify authorization for the requested resource"],
+    "must_not_do": ["rely only on client-side restrictions"]
+  },
+  {
+    "id": "performance-without-baseline",
+    "task": "A function looks inefficient and a cache is proposed.",
+    "must_do": ["define the relevant metric", "measure a representative baseline", "identify the actual bottleneck"],
+    "must_not_do": ["add a cache solely from code appearance"]
+  },
+  {
+    "id": "concurrent-worker",
+    "task": "A worker is changed to process items concurrently.",
+    "must_do": ["identify shared state and ordering requirements", "bound concurrency", "verify cancellation and cleanup", "check downstream capacity"],
+    "must_not_do": ["introduce unbounded parallel work"]
+  },
+  {
+    "id": "refactor-preserves-behavior",
+    "task": "A large conditional is being decomposed without intended behavior change.",
+    "must_do": ["state the behavior-preservation invariant", "establish test protection", "separate unrelated feature work"],
+    "must_not_do": ["silently change error or compatibility behavior"]
+  }
+]
