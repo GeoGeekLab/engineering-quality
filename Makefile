@@ -1,6 +1,6 @@
 PYTHON ?= python3
 
-.PHONY: check validate test compile
+.PHONY: check validate test compile package-check release-check package clean
 
 validate:
 	$(PYTHON) scripts/validate_skill.py
@@ -11,4 +11,17 @@ test:
 compile:
 	$(PYTHON) -m compileall -q scripts tests
 
-check: validate compile test
+package-check:
+	$(PYTHON) scripts/package_skill.py --check
+
+release-check:
+	$(PYTHON) scripts/release_check.py
+
+package:
+	$(PYTHON) scripts/package_skill.py --output-dir dist
+
+clean:
+	rm -rf dist
+	find . -type d -name __pycache__ -prune -exec rm -rf {} +
+
+check: validate compile test package-check release-check

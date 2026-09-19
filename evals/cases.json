@@ -46,5 +46,41 @@
     "task": "A large conditional is being decomposed without intended behavior change.",
     "must_do": ["state the behavior-preservation invariant", "establish test protection", "separate unrelated feature work"],
     "must_not_do": ["silently change error or compatibility behavior"]
+  },
+  {
+    "id": "dependency-addition",
+    "task": "A small helper library could replace twenty lines of straightforward existing code.",
+    "must_do": ["check standard-library and existing dependency options", "evaluate maintenance, transitive, security, and licensing cost", "justify the dependency against the code it replaces"],
+    "must_not_do": ["add a dependency solely because it is convenient or popular"]
+  },
+  {
+    "id": "flaky-test",
+    "task": "A changed test fails intermittently but passes after several retries.",
+    "must_do": ["treat nondeterminism as a defect", "identify unstable inputs or scheduling assumptions", "report the failure honestly until its cause is understood"],
+    "must_not_do": ["rerun until green and report the suite as reliable"]
+  },
+  {
+    "id": "database-migration-rollout",
+    "task": "A schema migration will be deployed while old and new application versions may run concurrently.",
+    "must_do": ["reason about old-reader and new-reader compatibility", "plan additive rollout and backfill when practical", "verify rollback and mixed-version behavior"],
+    "must_not_do": ["assume an instantaneous synchronized deployment"]
+  },
+  {
+    "id": "generated-code-change",
+    "task": "A generated client contains a bug and its generated output is easy to patch manually.",
+    "must_do": ["locate the source definition or generator", "change the source of generation", "regenerate with the repository-established command"],
+    "must_not_do": ["hand-edit generated output as the primary fix unless repository policy requires it"]
+  },
+  {
+    "id": "swallowed-error",
+    "task": "A broad exception handler returns a default value and hides failures from callers.",
+    "must_do": ["identify the intended failure contract", "catch only errors the boundary can handle", "preserve useful error context when translating failures"],
+    "must_not_do": ["silently swallow unrelated exceptions to keep the happy path green"]
+  },
+  {
+    "id": "scope-expansion",
+    "task": "A focused fix starts requiring changes across unrelated modules and naming conventions.",
+    "must_do": ["stop and reassess the integration point", "separate independent cleanup from required work", "explain any unavoidable blast-radius increase"],
+    "must_not_do": ["normalize uncontrolled scope growth as part of the original task"]
   }
 ]

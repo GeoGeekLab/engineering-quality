@@ -1,6 +1,6 @@
 # Language profiles
 
-Repository configuration and established local style take precedence over this file.
+Repository configuration and established local style take precedence over this file. Prefer official toolchains and ecosystem conventions when local guidance is silent.
 
 ## Python
 
@@ -23,6 +23,30 @@ Use `rustfmt`, compiler diagnostics, tests, and Clippy according to repository p
 ## Java and JVM languages
 
 Use the repository's Gradle or Maven wrapper when present. Preserve nullability and threading contracts, use structured resource management, avoid broad exception catches, and keep serialization and transaction boundaries explicit.
+
+## .NET
+
+Use the repository solution or project configuration and the pinned SDK when available. Preserve nullable-reference-type intent, async cancellation, disposal semantics, and public binary/API compatibility. Prefer `dotnet test`, configured analyzers, and formatter rules already present in the repository.
+
+## Swift
+
+Follow Swift API design guidelines and repository formatting rules. Preserve actor and isolation semantics, structured concurrency, cancellation, ownership, and error propagation. Treat force unwraps and unchecked concurrency escapes as explicit risk decisions rather than convenience.
+
+## Dart and Flutter
+
+Use repository-defined `dart analyze` or `flutter analyze` and test commands. Preserve null-safety assumptions, widget lifecycle cleanup, asynchronous error handling, and platform-specific behavior. Avoid rebuilding broad widget subtrees or adding state machinery without measured need.
+
+## C and C++
+
+Use the repository's compiler, build system, warning policy, sanitizers, and static analysis. Make ownership and lifetime explicit, avoid undefined behavior, preserve ABI constraints where public binaries are involved, and prefer RAII in C++ for owned resources.
+
+## Ruby
+
+Follow the repository's Ruby and Bundler versions, test runner, and lint configuration. Keep mutation and metaprogramming understandable, preserve exception context, avoid hidden global state, and verify database transaction behavior in framework code.
+
+## PHP
+
+Use the repository's Composer lockfile, static analyzer, formatter, and test runner. Preserve strict typing where enabled, validate boundary data, parameterize database access, keep framework lifecycle assumptions explicit, and distinguish recoverable application errors from programmer errors.
 
 ## SQL
 
