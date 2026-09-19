@@ -18,6 +18,10 @@ def read_version(root: Path = ROOT) -> str:
     return (root / "VERSION").read_text(encoding="utf-8").strip()
 
 
+def _workflow_contains_any(text: str, candidates: tuple[str, ...]) -> bool:
+    return any(candidate in text for candidate in candidates)
+
+
 def check_release(root: Path = ROOT, tag: str | None = None) -> list[str]:
     errors = validate_skill.validate_repository(root)
     version = read_version(root)
@@ -38,9 +42,14 @@ def check_release(root: Path = ROOT, tag: str | None = None) -> list[str]:
         errors.append("missing .github/workflows/release.yml")
     else:
         text = workflow.read_text(encoding="utf-8")
-        for required in ("scripts/release_check.py", "scripts/package_skill.py", "scripts/release_notes.py"):
-            if required not in text:
-                errors.append(f"release workflow does not invoke {required}")
+        requirements = (
+            ("release validation", ("scripts/release_check.py",)),
+            ("package build", ("scripts/package_skill.py", "make package")),
+            ("release notes", ("scripts/release_notes.py",)),
+        )
+        for label, candidates in requirements:
+            if not _workflow_contains_any(text, candidates):
+                errors.append(f"release workflow has no {label} step")
 
     errors.extend(package_skill.reproducibility_check(root))
     return errors
