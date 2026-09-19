@@ -1,0 +1,268 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">engineering-quality Technical Architecture</title>
+  <desc id="desc">Architecture diagram showing the entry contract, workflows, reference knowledge, execution tooling, quality assurance, and CI delivery layers.</desc>
+  <defs>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#f8fbff"/>
+    </linearGradient>
+    <linearGradient id="greenPanel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7fff9"/>
+      <stop offset="1" stop-color="#effcf3"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="2" stdDeviation="5" flood-color="#0f172a" flood-opacity=".08"/>
+    </filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#0969da"/>
+    </marker>
+    <style>
+      .bg { fill:#ffffff; }
+      .panel { fill:url(#panel); stroke:#b6d7ff; stroke-width:1.5; filter:url(#shadow); }
+      .panel-green { fill:url(#greenPanel); stroke:#b7e4c7; stroke-width:1.5; }
+      .card { fill:#ffffff; stroke:#d8e7f8; stroke-width:1.2; }
+      .card-green { fill:#ffffff; stroke:#c9ecd5; stroke-width:1.2; }
+      .title { font:700 34px Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; fill:#0f2a55; }
+      .subtitle { font:400 17px Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; fill:#526d8d; }
+      .section { font:700 18px Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; fill:#0f2a55; }
+      .path { font:700 15px ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; fill:#0969da; }
+      .label { font:700 13px Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; fill:#172b4d; }
+      .small { font:400 11px Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; fill:#5b708b; }
+      .tiny { font:600 10px Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; fill:#405873; }
+      .mono { font:700 12px ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; fill:#172b4d; }
+      .num { font:700 16px Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; fill:#fff; }
+      .arrow { stroke:#0969da; stroke-width:2; fill:none; marker-end:url(#arrow); }
+      .foundation { fill:#f8fafc; stroke:#d8e2ee; stroke-width:1; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1600" height="900"/>
+
+  <!-- Header -->
+  <g transform="translate(42,32)">
+    <text class="tiny" x="0" y="0">PRACTICES</text>
+    <text class="tiny" x="0" y="18">↓</text>
+    <text class="tiny" x="0" y="36">BETTER CODE</text>
+    <text class="tiny" x="0" y="54">↓</text>
+    <text class="tiny" x="0" y="72">RELIABLE SYSTEMS</text>
+  </g>
+  <g transform="translate(800,42)" text-anchor="middle">
+    <circle cx="-390" cy="0" r="25" fill="#0f2a55"/>
+    <text x="-390" y="7" font-family="ui-monospace,monospace" font-weight="800" font-size="18" fill="#fff">GH</text>
+    <text class="title" x="20" y="8">engineering-quality Technical Architecture</text>
+    <text class="subtitle" x="20" y="40">A portable engineering-quality playbook for implementation, review, verification, and CI</text>
+  </g>
+  <g transform="translate(1445,28) rotate(-3)">
+    <text x="0" y="0" font-family="ui-monospace,monospace" font-style="italic" font-size="11" fill="#4f79bd">Better Software</text>
+    <text x="0" y="15" font-family="ui-monospace,monospace" font-style="italic" font-size="11" fill="#4f79bd">Through Disciplined Practice</text>
+  </g>
+
+  <!-- 1 Entry -->
+  <g transform="translate(30,125)">
+    <rect class="panel" width="235" height="315" rx="16"/>
+    <circle cx="25" cy="25" r="18" fill="#0969da"/><text class="num" x="25" y="31" text-anchor="middle">1</text>
+    <text class="section" x="52" y="22">Entry Layer /</text>
+    <text class="section" x="52" y="43">Core Contract</text>
+    <rect x="14" y="63" width="207" height="180" rx="10" fill="#eff7ff" stroke="#a9d2ff"/>
+    <rect x="27" y="77" width="43" height="34" rx="7" fill="#172b4d"/>
+    <text x="48.5" y="100" text-anchor="middle" font-family="ui-monospace,monospace" font-weight="800" font-size="15" fill="#fff">M↓</text>
+    <text class="section" x="84" y="100">SKILL.md</text>
+    <text class="small" x="27" y="130">• engineering-quality</text>
+    <text class="small" x="27" y="151">• Progressive loading</text>
+    <text class="small" x="27" y="172">• Scoped change discipline</text>
+    <text class="small" x="27" y="193">• Evidence-based completion</text>
+    <text class="small" x="27" y="214">• Local conventions first</text>
+    <rect x="14" y="254" width="207" height="47" rx="9" fill="#f8fbff"/>
+    <text class="small" x="26" y="274">Central orchestrator for workflows,</text>
+    <text class="small" x="26" y="290">references, tooling, and evidence.</text>
+  </g>
+
+  <!-- 2 Workflows -->
+  <g transform="translate(285,125)">
+    <rect class="panel" width="420" height="315" rx="16"/>
+    <circle cx="25" cy="25" r="18" fill="#0969da"/><text class="num" x="25" y="31" text-anchor="middle">2</text>
+    <text class="section" x="52" y="22">Workflow Layer</text>
+    <text class="path" x="52" y="43">workflows/</text>
+    <text class="small" x="52" y="59">Operational playbooks for common tasks</text>
+
+    <g transform="translate(14,78)">
+      <g><rect class="card" width="124" height="96" rx="9"/><circle cx="62" cy="22" r="13" fill="#e8f3ff"/><text x="62" y="27" text-anchor="middle" font-size="15" font-weight="700" fill="#0969da">+</text><text class="mono" x="62" y="51" text-anchor="middle">feature.md</text><text class="small" x="62" y="69" text-anchor="middle">New features</text></g>
+      <g transform="translate(134,0)"><rect class="card" width="124" height="96" rx="9"/><circle cx="62" cy="22" r="13" fill="#e8f3ff"/><text x="62" y="27" text-anchor="middle" font-size="15" font-weight="700" fill="#0969da">!</text><text class="mono" x="62" y="51" text-anchor="middle">bug-fix.md</text><text class="small" x="62" y="69" text-anchor="middle">Fix defects</text></g>
+      <g transform="translate(268,0)"><rect class="card" width="124" height="96" rx="9"/><circle cx="62" cy="22" r="13" fill="#e8f3ff"/><text x="62" y="27" text-anchor="middle" font-size="15" font-weight="700" fill="#0969da">↻</text><text class="mono" x="62" y="51" text-anchor="middle">refactor.md</text><text class="small" x="62" y="69" text-anchor="middle">Improve design</text></g>
+      <g transform="translate(0,106)"><rect class="card" width="124" height="96" rx="9"/><circle cx="62" cy="22" r="13" fill="#e8f3ff"/><text x="62" y="27" text-anchor="middle" font-size="14" font-weight="700" fill="#0969da">✓</text><text class="mono" x="62" y="51" text-anchor="middle">review.md</text><text class="small" x="62" y="69" text-anchor="middle">Code review</text></g>
+      <g transform="translate(134,106)"><rect class="card" width="124" height="96" rx="9"/><circle cx="62" cy="22" r="13" fill="#e8f3ff"/><text x="62" y="27" text-anchor="middle" font-size="15" font-weight="700" fill="#0969da">?</text><text class="mono" x="62" y="51" text-anchor="middle">debug.md</text><text class="small" x="62" y="69" text-anchor="middle">Investigate and fix</text></g>
+      <g transform="translate(268,106)"><rect class="card" width="124" height="96" rx="9"/><circle cx="62" cy="22" r="13" fill="#e8f3ff"/><text x="62" y="27" text-anchor="middle" font-size="15" font-weight="700" fill="#0969da">↗</text><text class="mono" x="62" y="51" text-anchor="middle">performance.md</text><text class="small" x="62" y="69" text-anchor="middle">Optimize performance</text></g>
+    </g>
+  </g>
+
+  <!-- 3 References -->
+  <g transform="translate(725,125)">
+    <rect class="panel" width="540" height="315" rx="16"/>
+    <circle cx="25" cy="25" r="18" fill="#0969da"/><text class="num" x="25" y="31" text-anchor="middle">3</text>
+    <text class="section" x="52" y="22">Reference Knowledge Layer</text>
+    <text class="path" x="52" y="43">references/</text>
+    <text class="small" x="52" y="59">Guidance, principles, and domain knowledge</text>
+    <g transform="translate(14,78)">
+      <g><rect class="card" width="122" height="96" rx="9"/><rect x="43" y="10" width="36" height="24" rx="7" fill="#e8f3ff"/><text class="tiny" x="61" y="26" text-anchor="middle">DP</text><text class="mono" x="61" y="53" text-anchor="middle">principles.md</text><text class="small" x="61" y="72" text-anchor="middle">Design principles</text></g>
+      <g transform="translate(130,0)"><rect class="card" width="122" height="96" rx="9"/><rect x="43" y="10" width="36" height="24" rx="7" fill="#e8f3ff"/><text class="tiny" x="61" y="26" text-anchor="middle">CD</text><text class="mono" x="61" y="53" text-anchor="middle">change-discipline.md</text><text class="small" x="61" y="72" text-anchor="middle">Change management</text></g>
+      <g transform="translate(260,0)"><rect class="card" width="122" height="96" rx="9"/><rect x="43" y="10" width="36" height="24" rx="7" fill="#e8f3ff"/><text class="tiny" x="61" y="26" text-anchor="middle">V</text><text class="mono" x="61" y="53" text-anchor="middle">verification.md</text><text class="small" x="61" y="72" text-anchor="middle">Verification strategy</text></g>
+      <g transform="translate(390,0)"><rect class="card" width="122" height="96" rx="9"/><rect x="43" y="10" width="36" height="24" rx="7" fill="#e8f3ff"/><text class="tiny" x="61" y="26" text-anchor="middle">T</text><text class="mono" x="61" y="53" text-anchor="middle">testing.md</text><text class="small" x="61" y="72" text-anchor="middle">Testing guidance</text></g>
+
+      <g transform="translate(0,106)"><rect class="card" width="122" height="96" rx="9"/><rect x="43" y="10" width="36" height="24" rx="7" fill="#e8f3ff"/><text class="tiny" x="61" y="26" text-anchor="middle">SEC</text><text class="mono" x="61" y="53" text-anchor="middle">security.md</text><text class="small" x="61" y="72" text-anchor="middle">Security practices</text></g>
+      <g transform="translate(130,106)"><rect class="card" width="122" height="96" rx="9"/><rect x="43" y="10" width="36" height="24" rx="7" fill="#e8f3ff"/><text class="tiny" x="61" y="26" text-anchor="middle">API</text><text class="mono" x="61" y="53" text-anchor="middle">api-compatibility.md</text><text class="small" x="61" y="72" text-anchor="middle">Compatibility guidance</text></g>
+      <g transform="translate(260,106)"><rect class="card" width="122" height="96" rx="9"/><rect x="43" y="10" width="36" height="24" rx="7" fill="#e8f3ff"/><text class="tiny" x="61" y="26" text-anchor="middle">P+C</text><text class="mono" x="61" y="50" text-anchor="middle">performance-</text><text class="mono" x="61" y="64" text-anchor="middle">concurrency.md</text><text class="small" x="61" y="82" text-anchor="middle">Performance + concurrency</text></g>
+      <g transform="translate(390,106)"><rect class="card" width="122" height="96" rx="9"/><rect x="43" y="10" width="36" height="24" rx="7" fill="#e8f3ff"/><text class="tiny" x="61" y="26" text-anchor="middle">LANG</text><text class="mono" x="61" y="50" text-anchor="middle">language-</text><text class="mono" x="61" y="64" text-anchor="middle">profiles.md</text><text class="small" x="61" y="82" text-anchor="middle">Language guidance</text></g>
+    </g>
+  </g>
+
+  <!-- Foundations -->
+  <g transform="translate(1285,125)">
+    <rect x="0" y="0" width="285" height="315" rx="16" fill="#fbfcfe" stroke="#9ab7d7" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <text class="section" x="18" y="29">Design Foundations</text>
+    <text class="small" x="18" y="48">Established engineering practice</text>
+    <g transform="translate(14,63)">
+      <g><rect class="foundation" width="257" height="29" rx="7"/><text class="label" x="12" y="19">Google Engineering Practices</text></g>
+      <g transform="translate(0,35)"><rect class="foundation" width="257" height="29" rx="7"/><text class="label" x="12" y="19">Martin Fowler · Refactoring</text></g>
+      <g transform="translate(0,70)"><rect class="foundation" width="257" height="29" rx="7"/><text class="label" x="12" y="19">John Ousterhout · Software Design</text></g>
+      <g transform="translate(0,105)"><rect class="foundation" width="257" height="29" rx="7"/><text class="label" x="12" y="19">OWASP ASVS</text></g>
+      <g transform="translate(0,140)"><rect class="foundation" width="257" height="29" rx="7"/><text class="label" x="12" y="19">NIST SSDF</text></g>
+      <g transform="translate(0,175)"><rect class="foundation" width="257" height="29" rx="7"/><text class="label" x="12" y="19">Hyrum's Law</text></g>
+      <g transform="translate(0,210)"><rect class="foundation" width="257" height="29" rx="7"/><text class="label" x="12" y="19">Semantic Versioning</text></g>
+    </g>
+  </g>
+
+  <!-- arrows top -->
+  <path class="arrow" d="M265 285 L280 285"/>
+  <path class="arrow" d="M705 285 L720 285"/>
+  <path class="arrow" d="M495 440 L495 465"/>
+  <path class="arrow" d="M995 440 L995 465"/>
+
+  <!-- 4 Execution -->
+  <g transform="translate(30,475)">
+    <rect class="panel" width="490" height="300" rx="16"/>
+    <circle cx="25" cy="25" r="18" fill="#0969da"/><text class="num" x="25" y="31" text-anchor="middle">4</text>
+    <text class="section" x="52" y="22">Execution and Tooling Layer</text>
+    <text class="path" x="52" y="43">scripts/ + local tooling</text>
+    <text class="small" x="52" y="59">Deterministic checks and validation tools</text>
+
+    <rect class="panel-green" x="14" y="76" width="462" height="129" rx="10"/>
+    <!-- Python-inspired icon -->
+    <g transform="translate(27,89)">
+      <path d="M5 8 Q5 0 14 0 H31 Q39 0 39 8 V22 H19 Q12 22 12 29 H3 Q0 29 0 24 V13 Q0 8 5 8Z" fill="#3776AB"/>
+      <circle cx="30" cy="7" r="2" fill="#fff"/>
+      <path d="M42 16 Q42 8 34 8 H19 V22 H30 Q37 22 37 29 V36 H20 Q12 36 12 28 H3 V42 Q3 50 12 50 H29 Q37 50 37 42 V29 H46 Q50 29 50 24 V20 Q50 16 46 16Z" fill="#FFD343"/>
+      <circle cx="20" cy="43" r="2" fill="#6b5b00"/>
+    </g>
+    <text class="label" x="90" y="98">Python Tooling</text>
+    <text class="small" x="90" y="115">Core scripts for project quality</text>
+    <g transform="translate(90,128)">
+      <rect class="card-green" width="176" height="61" rx="8"/>
+      <text class="mono" x="10" y="22">project_checks.py</text>
+      <text class="small" x="10" y="40">Discover conservative</text><text class="small" x="10" y="53">project-quality commands</text>
+    </g>
+    <g transform="translate(277,128)">
+      <rect class="card-green" width="184" height="61" rx="8"/>
+      <text class="mono" x="10" y="22">validate_skill.py</text>
+      <text class="small" x="10" y="40">Validate structure, metadata,</text><text class="small" x="10" y="53">links, and evals</text>
+    </g>
+
+    <text class="label" x="20" y="228">Supporting tools</text>
+    <g transform="translate(14,240)">
+      <g><rect class="card" width="107" height="45" rx="8"/><text class="mono" x="53.5" y="19" text-anchor="middle">Makefile</text><text class="tiny" x="53.5" y="34" text-anchor="middle">check · test</text></g>
+      <g transform="translate(114,0)"><rect class="card" width="107" height="45" rx="8"/><text class="mono" x="53.5" y="19" text-anchor="middle">unittest</text><text class="tiny" x="53.5" y="34" text-anchor="middle">unit tests</text></g>
+      <g transform="translate(228,0)"><rect class="card" width="107" height="45" rx="8"/><text class="mono" x="53.5" y="19" text-anchor="middle">compileall</text><text class="tiny" x="53.5" y="34" text-anchor="middle">compile Python</text></g>
+      <g transform="translate(342,0)"><rect class="card" width="120" height="45" rx="8"/><text class="mono" x="60" y="19" text-anchor="middle">Terminal / CLI</text><text class="tiny" x="60" y="34" text-anchor="middle">local execution</text></g>
+    </g>
+  </g>
+
+  <!-- 5 QA -->
+  <g transform="translate(540,475)">
+    <rect class="panel" width="500" height="300" rx="16"/>
+    <circle cx="25" cy="25" r="18" fill="#0969da"/><text class="num" x="25" y="31" text-anchor="middle">5</text>
+    <text class="section" x="52" y="22">Quality Assurance Layer</text>
+    <text class="path" x="52" y="43">tests/ + evals/</text>
+    <text class="small" x="52" y="59">Executable tests and evaluation scenarios</text>
+
+    <g transform="translate(14,78)">
+      <g><rect class="card" width="152" height="74" rx="8"/><rect x="10" y="10" width="30" height="22" rx="6" fill="#3776AB"/><text x="25" y="25" text-anchor="middle" font-size="10" font-weight="800" fill="#fff">Py</text><text class="tiny" x="76" y="47" text-anchor="middle">test_project_checks.py</text><text class="small" x="76" y="63" text-anchor="middle">Project-check discovery</text></g>
+      <g transform="translate(160,0)"><rect class="card" width="152" height="74" rx="8"/><rect x="10" y="10" width="30" height="22" rx="6" fill="#3776AB"/><text x="25" y="25" text-anchor="middle" font-size="10" font-weight="800" fill="#fff">Py</text><text class="tiny" x="76" y="47" text-anchor="middle">test_validate_skill.py</text><text class="small" x="76" y="63" text-anchor="middle">Repository validation</text></g>
+      <g transform="translate(320,0)"><rect class="card" width="152" height="74" rx="8"/><rect x="10" y="10" width="30" height="22" rx="6" fill="#eef2ff"/><text x="25" y="25" text-anchor="middle" font-size="11" font-weight="800" fill="#6d5bd0">{}</text><text class="mono" x="76" y="47" text-anchor="middle">evals/cases.json</text><text class="small" x="76" y="63" text-anchor="middle">Behavioral scenarios</text></g>
+    </g>
+
+    <rect class="panel-green" x="14" y="164" width="472" height="120" rx="10"/>
+    <text class="label" x="26" y="184">Scenario Coverage</text>
+    <g transform="translate(25,195)">
+      <g><rect class="card-green" width="104" height="34" rx="7"/><circle cx="14" cy="17" r="8" fill="#1aab40"/><text x="14" y="21" text-anchor="middle" font-size="10" fill="#fff">✓</text><text class="tiny" x="27" y="21">Minimal bug fix</text></g>
+      <g transform="translate(111,0)"><rect class="card-green" width="104" height="34" rx="7"/><circle cx="14" cy="17" r="8" fill="#1aab40"/><text x="14" y="21" text-anchor="middle" font-size="10" fill="#fff">✓</text><text class="tiny" x="27" y="14">Compatibility</text><text class="tiny" x="27" y="26">change</text></g>
+      <g transform="translate(222,0)"><rect class="card-green" width="104" height="34" rx="7"/><circle cx="14" cy="17" r="8" fill="#1aab40"/><text x="14" y="21" text-anchor="middle" font-size="10" fill="#fff">✓</text><text class="tiny" x="27" y="21">Wrong abstraction</text></g>
+      <g transform="translate(333,0)"><rect class="card-green" width="104" height="34" rx="7"/><circle cx="14" cy="17" r="8" fill="#1aab40"/><text x="14" y="21" text-anchor="middle" font-size="10" fill="#fff">✓</text><text class="tiny" x="27" y="14">Verification</text><text class="tiny" x="27" y="26">evidence</text></g>
+      <g transform="translate(0,43)"><rect class="card-green" width="104" height="34" rx="7"/><circle cx="14" cy="17" r="8" fill="#1aab40"/><text x="14" y="21" text-anchor="middle" font-size="10" fill="#fff">✓</text><text class="tiny" x="27" y="21">Security boundary</text></g>
+      <g transform="translate(111,43)"><rect class="card-green" width="104" height="34" rx="7"/><circle cx="14" cy="17" r="8" fill="#1aab40"/><text x="14" y="21" text-anchor="middle" font-size="10" fill="#fff">✓</text><text class="tiny" x="27" y="14">Performance</text><text class="tiny" x="27" y="26">baseline</text></g>
+      <g transform="translate(222,43)"><rect class="card-green" width="104" height="34" rx="7"/><circle cx="14" cy="17" r="8" fill="#1aab40"/><text x="14" y="21" text-anchor="middle" font-size="10" fill="#fff">✓</text><text class="tiny" x="27" y="21">Concurrent worker</text></g>
+      <g transform="translate(333,43)"><rect class="card-green" width="104" height="34" rx="7"/><circle cx="14" cy="17" r="8" fill="#1aab40"/><text x="14" y="21" text-anchor="middle" font-size="10" fill="#fff">✓</text><text class="tiny" x="27" y="14">Behavior-preserving</text><text class="tiny" x="27" y="26">refactor</text></g>
+    </g>
+  </g>
+
+  <!-- 6 CI -->
+  <g transform="translate(1060,475)">
+    <rect class="panel" width="510" height="300" rx="16"/>
+    <circle cx="25" cy="25" r="18" fill="#0969da"/><text class="num" x="25" y="31" text-anchor="middle">6</text>
+    <text class="section" x="52" y="22">CI / Delivery Layer</text>
+    <text class="path" x="52" y="43">.github/workflows/ci.yml</text>
+    <text class="small" x="52" y="59">Automated validation on every change</text>
+
+    <g transform="translate(18,82)">
+      <!-- actions icon -->
+      <circle cx="18" cy="16" r="7" fill="none" stroke="#0969da" stroke-width="3"/>
+      <circle cx="46" cy="7" r="5" fill="#0969da"/>
+      <circle cx="46" cy="27" r="5" fill="#0969da"/>
+      <path d="M25 13 L41 8 M25 19 L41 26" stroke="#0969da" stroke-width="2"/>
+      <text class="label" x="64" y="14">GitHub Actions</text>
+      <text class="small" x="64" y="31">Matrix execution</text>
+
+      <g transform="translate(0,48)">
+        <g><rect class="card" width="95" height="52" rx="8"/><rect x="10" y="11" width="26" height="20" rx="6" fill="#3776AB"/><text x="23" y="25" text-anchor="middle" font-size="9" font-weight="800" fill="#fff">Py</text><text class="mono" x="49" y="23">3.10</text></g>
+        <g transform="translate(104,0)"><rect class="card" width="95" height="52" rx="8"/><rect x="10" y="11" width="26" height="20" rx="6" fill="#3776AB"/><text x="23" y="25" text-anchor="middle" font-size="9" font-weight="800" fill="#fff">Py</text><text class="mono" x="49" y="23">3.12</text></g>
+        <g transform="translate(208,0)"><rect class="card" width="95" height="52" rx="8"/><rect x="10" y="11" width="26" height="20" rx="6" fill="#3776AB"/><text x="23" y="25" text-anchor="middle" font-size="9" font-weight="800" fill="#fff">Py</text><text class="mono" x="49" y="23">3.14</text></g>
+      </g>
+
+      <rect class="panel-green" x="0" y="113" width="303" height="80" rx="10"/>
+      <circle cx="19" cy="136" r="8" fill="#1aab40"/><text x="19" y="140" text-anchor="middle" font-size="10" fill="#fff">✓</text><text class="label" x="34" y="140">Repository validation passed</text>
+      <circle cx="19" cy="158" r="8" fill="#1aab40"/><text x="19" y="162" text-anchor="middle" font-size="10" fill="#fff">✓</text><text class="label" x="34" y="162">Unit tests passed</text>
+      <circle cx="19" cy="180" r="8" fill="#1aab40"/><text x="19" y="184" text-anchor="middle" font-size="10" fill="#fff">✓</text><text class="label" x="34" y="184">Ready for merge</text>
+
+      <path class="arrow" d="M318 105 L339 105"/>
+      <rect x="347" y="38" width="126" height="155" rx="12" fill="#ffffff" stroke="#a9d2ff" stroke-width="1.4"/>
+      <circle cx="410" cy="70" r="23" fill="#172b4d"/>
+      <text x="410" y="76" text-anchor="middle" font-family="ui-monospace,monospace" font-weight="800" font-size="14" fill="#fff">GH</text>
+      <text class="label" x="410" y="105" text-anchor="middle">main branch</text>
+      <text class="small" x="410" y="124" text-anchor="middle">Clean, validated,</text>
+      <text class="small" x="410" y="139" text-anchor="middle">ready to contribute</text>
+      <rect x="365" y="154" width="90" height="26" rx="8" fill="#1aab40"/>
+      <text x="410" y="172" text-anchor="middle" font-family="Inter,ui-sans-serif,system-ui,sans-serif" font-size="11" font-weight="700" fill="#fff">READY TO MERGE</text>
+    </g>
+  </g>
+
+  <path class="arrow" d="M520 620 L535 620"/>
+  <path class="arrow" d="M1040 620 L1055 620"/>
+
+  <!-- Footer principles -->
+  <g transform="translate(30,804)">
+    <rect x="0" y="0" width="1540" height="66" rx="13" fill="#f8fbff" stroke="#b6d7ff" stroke-width="1.4"/>
+    <g transform="translate(18,13)">
+      <circle cx="19" cy="19" r="18" fill="#e8f3ff" stroke="#0969da" stroke-width="2"/>
+      <circle cx="19" cy="19" r="8" fill="none" stroke="#0969da" stroke-width="2"/>
+      <circle cx="19" cy="19" r="2.5" fill="#0969da"/>
+      <text class="section" x="48" y="17">Core Principles</text>
+      <text class="small" x="48" y="35">A simpler, more reliable engineering workflow.</text>
+    </g>
+    <line x1="330" y1="12" x2="330" y2="54" stroke="#d2deeb"/>
+    <text class="label" x="360" y="26">✓ Correctness first</text><text class="small" x="360" y="44">Build the right thing.</text>
+    <line x1="580" y1="12" x2="580" y2="54" stroke="#d2deeb"/>
+    <text class="label" x="610" y="26">↗ Small, coherent changes</text><text class="small" x="610" y="44">Keep diffs focused and reviewable.</text>
+    <line x1="900" y1="12" x2="900" y2="54" stroke="#d2deeb"/>
+    <text class="label" x="930" y="26">▰ Verification with evidence</text><text class="small" x="930" y="44">Prove what was actually checked.</text>
+    <line x1="1220" y1="12" x2="1220" y2="54" stroke="#d2deeb"/>
+    <text class="label" x="1250" y="26">◇ No unnecessary churn</text><text class="small" x="1250" y="44">Keep the codebase stable.</text>
+  </g>
+</svg>
