@@ -2,9 +2,9 @@
 
 # engineering-quality
 
-**Engineering discipline, encoded.**
+**Ship patches you can defend.**
 
-`correctness → coherence → verification → evidence`
+`read the repo → model the contract → patch narrowly → try to break it → inspect the diff → show the evidence`
 
 [![CI](https://github.com/GeoGeekLab/engineering-quality/actions/workflows/ci.yml/badge.svg)](https://github.com/GeoGeekLab/engineering-quality/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/GeoGeekLab/engineering-quality?style=flat-square)](https://github.com/GeoGeekLab/engineering-quality/releases)
@@ -14,7 +14,7 @@
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-ready-D97757?style=flat-square&logo=anthropic&logoColor=white)](#claude-code)
 [![ChatGPT](https://img.shields.io/badge/ChatGPT-skill-10A37F?style=flat-square&logo=openai&logoColor=white)](#chatgpt)
 
-A portable engineering-quality playbook for implementation, debugging, refactoring, review, performance work, and evidence-based completion.
+A portable engineering playbook for coding agents and humans who want changes that are correct, local, reviewable, and provable.
 
 </div>
 
@@ -22,21 +22,43 @@ A portable engineering-quality playbook for implementation, debugging, refactori
   <img src="docs/assets/architecture.svg" alt="engineering-quality technical architecture" width="100%">
 </p>
 
-## Why this exists
+## The idea
 
-Most code-quality guidance fails in one of two ways: it becomes a style manifesto, or it becomes a checklist that cannot prove anything.
+Code can compile and still be wrong.
 
-**engineering-quality** takes a different position:
+Tests can pass and still miss the contract.
 
-- correctness and safety outrank stylistic preference;
-- repository-local conventions outrank generic taste;
-- changes should be small, coherent, and reviewable;
+A diff can look clean and still break compatibility, leak data, race under load, or quietly widen scope.
+
+So this project treats engineering quality less like taste and more like a protocol:
+
+```text
+observe
+  ↓
+infer the local contract
+  ↓
+change the smallest coherent surface
+  ↓
+attack the change with the right checks
+  ↓
+read the diff like a reviewer
+  ↓
+separate proof from belief
+```
+
+The core rules are intentionally boring:
+
+- correctness beats elegance;
+- repository-local conventions beat generic taste;
+- public behavior is a contract until proven otherwise;
 - tests should encode behavior, not implementation trivia;
-- compatibility, security, concurrency, and operability are part of quality;
-- measurable concerns should be delegated to compilers, linters, type checkers, test runners, static analysis, and CI;
-- completion requires evidence.
+- security, compatibility, concurrency, and operability count as correctness;
+- machines should check what machines can check;
+- "looks good" is not evidence.
 
-It is intentionally conservative about universal thresholds. Function length, coverage, complexity, and diff size are useful signals—not automatic verdicts.
+Function length, coverage, complexity, and diff size are signals. They are not commandments.
+
+> **Less taste. More invariants.**
 
 ## Install
 
@@ -48,7 +70,7 @@ Paste this into Codex:
 $skill-installer Install engineering-quality from https://github.com/GeoGeekLab/engineering-quality
 ```
 
-That is the preferred Codex path: the built-in skill installer can fetch the repository and place the skill in a Codex-recognized location.
+That is the preferred Codex path: the built-in skill installer fetches the repository and installs the skill in a Codex-recognized location.
 
 <details>
 <summary><strong>Codex alternatives: cross-agent CLI and manual install</strong></summary>
@@ -106,36 +128,38 @@ See [docs/compatibility.md](docs/compatibility.md) for the maintained host compa
 
 Platform references: [Codex Skills](https://developers.openai.com/docs/build-skills) · [ChatGPT Skills](https://help.openai.com/en/articles/20001066) · [Claude Skills](https://www.anthropic.com/research/skills) · [skills CLI](https://github.com/vercel-labs/skills)
 
-## Execution model
+## Runtime
 
 ```text
 RECON → CONTRACT → CHANGE → VERIFY → REVIEW → EVIDENCE
 ```
 
-| Stage | Question |
-| --- | --- |
-| **Recon** | What does this repository already do, and what conventions does it enforce? |
-| **Contract** | What behavior must change, what must remain stable, and what evidence proves completion? |
-| **Change** | What is the smallest coherent implementation that satisfies the contract? |
-| **Verify** | Which focused tests, static checks, builds, or risk-specific checks can falsify the change? |
-| **Review** | What correctness, security, compatibility, concurrency, or maintainability risks remain? |
-| **Evidence** | Which claims are verified, reasoned, or not yet verified? |
+Think of it as a tiny engineering VM:
 
-The core skill stays compact and loads deeper guidance only when the task requires it.
+| Stage | What it does |
+| --- | --- |
+| **RECON** | Read before writing. Discover architecture, conventions, checks, ownership, and sharp edges. |
+| **CONTRACT** | Define what must change, what must not change, and what would prove success. |
+| **CHANGE** | Make the smallest coherent patch that satisfies the contract. |
+| **VERIFY** | Try to falsify the patch with focused tests, static checks, builds, and risk-specific probes. |
+| **REVIEW** | Inspect the diff for correctness, compatibility, security, concurrency, maintainability, and accidental scope. |
+| **EVIDENCE** | Report what was executed, what was only reasoned about, and what remains unverified. |
+
+No "done" until the evidence matches the claim.
 
 ## Repository map
 
 ```text
 engineering-quality/
-├── SKILL.md                     # entry contract + routing
+├── SKILL.md                     # bootloader: invariants + routing
 ├── VERSION                      # canonical release version
 ├── workflows/
-│   ├── feature.md
-│   ├── bug-fix.md
-│   ├── refactor.md
-│   ├── review.md
-│   ├── debug.md
-│   └── performance.md
+│   ├── feature.md               # add behavior
+│   ├── bug-fix.md               # restore behavior
+│   ├── refactor.md              # move code without moving the contract
+│   ├── review.md                # hunt failure modes
+│   ├── debug.md                 # reduce uncertainty
+│   └── performance.md           # measure before mythology
 ├── references/
 │   ├── principles.md
 │   ├── change-discipline.md
@@ -169,13 +193,15 @@ engineering-quality/
 
 ### Progressive loading
 
-`SKILL.md` is the router, not the encyclopedia.
+`SKILL.md` is the bootloader, not the encyclopedia.
 
-It establishes the invariant set—correctness, scoped changes, local conventions, verification, diff review—and sends the task to the narrowest workflow and reference set. Security guidance is loaded for trust boundaries. Compatibility guidance is loaded for public contracts. Performance and concurrency guidance is loaded only when those risks are present.
+It loads the invariant set first—correctness, scoped changes, local conventions, verification, diff review—then routes into the narrowest workflow and reference set needed for the task.
 
-That keeps the operating context small while preserving depth.
+Security guidance appears when trust boundaries matter. Compatibility guidance appears when public contracts move. Performance and concurrency guidance stay out of the context until they are actually relevant.
 
-## Tooling
+Small context. Deep branches.
+
+## Tools, not vibes
 
 ### Discover project checks
 
@@ -203,7 +229,7 @@ Requires Python 3.10 or newer.
 make check
 ```
 
-The validation pipeline covers:
+The validation pipeline treats the repository itself as an executable contract:
 
 ```text
 repository integrity
@@ -216,9 +242,9 @@ repository integrity
   └── release-readiness invariants
 ```
 
-CI runs the contract across Python **3.10**, **3.12**, and **3.14**, then builds and verifies the distribution artifact.
+CI runs that contract across Python **3.10**, **3.12**, and **3.14**, then builds and verifies the distribution artifact.
 
-### Build a clean distribution
+### Build the artifact
 
 ```bash
 make package
@@ -232,11 +258,21 @@ dist/
 └── engineering-quality-<version>.zip.sha256
 ```
 
-The ZIP contains only the runtime skill payload and an internal `MANIFEST.sha256`. Tests, CI configuration, README content, and release tooling are intentionally excluded.
+The ZIP contains only the runtime skill payload plus an internal `MANIFEST.sha256`.
+
+Tests, CI configuration, README content, and release tooling stay outside the runtime artifact on purpose.
 
 Tagged releases are automated. See [docs/release.md](docs/release.md).
 
 ## Quality model
+
+Not this:
+
+```text
+quality = more abstraction + more comments + more tests + more patterns
+```
+
+Closer to this:
 
 ```text
 quality =
@@ -245,25 +281,29 @@ quality =
   + compatibility
   + security
   + verifiability
-  - unnecessary complexity
+  - accidental complexity
   - unnecessary churn
 ```
 
-This is not a numeric score. It is a design stance.
+It is not a score. It is an ordering of concerns.
 
-### Correctness first
+### Correctness > aesthetics
 
-A cleaner implementation that changes the wrong behavior is a regression.
+A beautiful implementation of the wrong behavior is still a bug.
 
-### Small, coherent changes
+### Coherent diff > ambitious cleanup
 
-A change should have one understandable purpose. Required tests, migrations, and documentation belong with that purpose; drive-by cleanup does not.
+A patch should have one understandable reason to exist.
 
-### Local consistency over generic preference
+Tests, migrations, and documentation required by that reason belong in the patch. Drive-by cleanup does not.
 
-Existing repository architecture, naming, error semantics, and tooling have precedence unless they are directly responsible for the problem.
+### Local architecture > imported doctrine
 
-### Verification with evidence
+The repository already has a language: naming, error semantics, abstractions, test shape, tooling, and release conventions.
+
+Read it before teaching it a new accent.
+
+### Evidence > confidence
 
 ```text
 Verified     = executed and observed
@@ -271,15 +311,29 @@ Reasoned     = supported by inspection
 Not verified = relevant check not run, with a concrete reason
 ```
 
-Reasoning is useful. It is not execution evidence.
+Reasoning matters. Execution evidence matters more.
 
-### Smells are signals
+### Smells are interrupts, not exceptions
 
-Long functions, duplicated code, broad diffs, low coverage, and high complexity can indicate risk. None of them is a universal defect by itself.
+Long functions, duplicated code, broad diffs, low coverage, and high complexity should make you look closer.
 
-The job is to identify the underlying failure mode: coupling, obscurity, fragile invariants, unsafe boundaries, hidden compatibility cost, or difficult verification.
+They do not automatically make the code wrong.
 
-## Review rubric
+The useful question is not "which rule was violated?"
+
+It is:
+
+```text
+what failure mode is hiding here?
+```
+
+Coupling? Obscured invariants? Unsafe boundaries? Compatibility debt? Unverifiable behavior? Operational surprise?
+
+Find the bug behind the smell.
+
+## Review protocol
+
+Review is not a style referendum.
 
 Findings are classified by concrete impact:
 
@@ -290,11 +344,38 @@ Findings are classified by concrete impact:
 | **Minor** | A bounded issue affecting clarity, resilience, test quality, or consistency. |
 | **Note** | Optional improvement, question, or follow-up. |
 
-Style disagreement alone is not a severity level.
+A useful review comment should be able to answer:
+
+```text
+what can fail?
+under what condition?
+why does this diff make that possible?
+what evidence would close the finding?
+```
+
+Style disagreement alone has no severity.
+
+## Failure modes this tries to kill
+
+```text
+"the tests passed, so we're done"
+"while I'm here, I'll clean up these 14 files"
+"this abstraction is more elegant"
+"coverage went up"
+"the linter is green"
+"works on my machine"
+"probably backward compatible"
+"should be thread-safe"
+"looks good"
+```
+
+None of those statements is useless.
+
+None of them is sufficient evidence by itself.
 
 ## Design foundations
 
-The playbook is informed by established engineering practice rather than one doctrine:
+The playbook borrows from established engineering practice without turning any one source into scripture:
 
 - [Google Engineering Practices](https://google.github.io/eng-practices/) — reviewability, small coherent changes, and codebase health.
 - [Martin Fowler](https://refactoring.com/) — refactoring, code smells, testing, and evolutionary design.
@@ -307,17 +388,21 @@ See [docs/foundations.md](docs/foundations.md) for the maintained source map.
 
 ## Contributing
 
-Changes should improve engineering outcomes without turning the project into a catalog of personal preferences.
+Do not add rules because they sound professional.
 
-Before proposing a rule, ask:
+Add them because they kill a real failure mode.
+
+Before proposing one, ask:
 
 ```text
-Does it address a concrete failure mode?
-Does it apply conditionally?
-Can deterministic tooling enforce it instead?
-Does it belong in the core contract or an on-demand reference?
-Can its behavior be evaluated?
+What breaks without this rule?
+Is it always true, or conditional?
+Can a deterministic tool enforce it better?
+Does it belong in the bootloader or an on-demand reference?
+Can we write an eval that catches its absence?
 ```
+
+If the answer is fuzzy, the rule probably is too.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -329,6 +414,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 <div align="center">
 
-**Build the right thing. Keep the diff coherent. Prove what works.**
+**Read the repo. Respect the contract. Keep the patch tight. Prove the result.**
+
+`works ≠ verified`
 
 </div>
