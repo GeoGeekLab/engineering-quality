@@ -11,6 +11,7 @@ All notable changes to this project are documented here.
 - Split release construction from privileged publication and add signed artifact provenance with in-workflow verification.
 - Upgrade artifact transport to current GitHub Actions releases, verify an upload/download round trip in CI, and use the current `actions/attest` provenance action.
 - Make project-check discovery execution-safe by default: running discovered checks now requires explicit repository trust, with regression coverage and trust-boundary guidance.
+- Replace prose-only behavioral eval fixtures with an executable miniature-repository harness, deterministic post-agent checks, hidden-rubric runtime staging, machine-readable reports, and CI self-tests that do not masquerade as real-model results.
 
 ## 1.1.0 - 2026-09-19
 
