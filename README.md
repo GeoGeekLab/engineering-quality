@@ -251,7 +251,8 @@ The validation pipeline treats the repository itself as an executable contract:
 repository integrity
   ├── skill metadata + local links
   ├── VERSION + CHANGELOG consistency
-  ├── evaluation fixtures + schema
+  ├── executable eval fixtures + schemas
+  ├── eval harness contract
   ├── Python compilation
   ├── unit tests
   ├── deterministic package verification
