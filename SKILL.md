@@ -99,6 +99,8 @@ Do not claim a check passed unless it was actually run and its result observed.
 
 Do not install dependencies, update lockfiles, rewrite generated files, or run destructive commands merely to satisfy verification unless the task requires that action.
 
+Before executing repository-defined checks, establish that the repository is trusted for code execution. Test runners, build systems, package scripts, wrappers, compiler hooks, and similarly named "check" commands may execute arbitrary repository-controlled code. If trust is not established, keep verification to inspection or use an appropriately isolated environment without sensitive credentials or unnecessary network access.
+
 Read [verification](references/verification.md) for evidence rules and failure handling.
 
 ## Review the diff
