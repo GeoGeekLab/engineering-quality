@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -17,6 +18,19 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CASES = ROOT / "evals" / "cases.json"
+NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+CASE_KEYS = {"id", "task", "must_do", "must_not_do", "fixture", "checks"}
+FIXTURE_KEYS = {"files"}
+CHECK_KEYS = {
+    "type",
+    "paths",
+    "path",
+    "text",
+    "terms",
+    "argv",
+    "repeat",
+    "exit_code",
+}
 SUPPORTED_CHECKS = {
     "changed_files_include",
     "changed_files_subset",
@@ -54,9 +68,13 @@ def validate_cases(cases: list[dict[str, Any]]) -> list[str]:
             errors.append(f"{label}: expected object")
             continue
 
+        extra_case_keys = sorted(set(case) - CASE_KEYS)
+        if extra_case_keys:
+            errors.append(f"{label}: unsupported keys: {', '.join(extra_case_keys)}")
+
         case_id = case.get("id")
-        if not isinstance(case_id, str) or not case_id:
-            errors.append(f"{label}: id must be a non-empty string")
+        if not isinstance(case_id, str) or not NAME_RE.fullmatch(case_id):
+            errors.append(f"{label}: id must use lowercase kebab-case")
         elif case_id in seen:
             errors.append(f"{label}: duplicate id {case_id}")
         else:
@@ -82,6 +100,11 @@ def validate_cases(cases: list[dict[str, Any]]) -> list[str]:
         if not isinstance(fixture, dict):
             errors.append(f"{label}: fixture must be an object")
         else:
+            extra_fixture_keys = sorted(set(fixture) - FIXTURE_KEYS)
+            if extra_fixture_keys:
+                errors.append(
+                    f"{label}: unsupported fixture keys: {', '.join(extra_fixture_keys)}"
+                )
             files = fixture.get("files")
             if not isinstance(files, dict) or not files:
                 errors.append(f"{label}: fixture.files must be a non-empty object")
@@ -102,6 +125,12 @@ def validate_cases(cases: list[dict[str, Any]]) -> list[str]:
             if not isinstance(check, dict):
                 errors.append(f"{check_label}: expected object")
                 continue
+            extra_check_keys = sorted(set(check) - CHECK_KEYS)
+            if extra_check_keys:
+                errors.append(
+                    f"{check_label}: unsupported keys: {', '.join(extra_check_keys)}"
+                )
+
             check_type = check.get("type")
             if check_type not in SUPPORTED_CHECKS:
                 errors.append(f"{check_label}: unsupported check type {check_type!r}")
@@ -256,7 +285,7 @@ def run_agent(
             text=True,
         )
         return {
-            "argv": argv,
+            "adapter": Path(argv[0]).name if argv else "",
             "exit_code": completed.returncode,
             "stdout": completed.stdout,
             "stderr": completed.stderr,
@@ -264,7 +293,7 @@ def run_agent(
         }
     except subprocess.TimeoutExpired as exc:
         return {
-            "argv": argv,
+            "adapter": Path(argv[0]).name if argv else "",
             "exit_code": 124,
             "stdout": exc.stdout or "",
             "stderr": exc.stderr or "",
@@ -542,7 +571,7 @@ def evaluate_case(
 def build_report(
     results: list[dict[str, Any]],
     *,
-    agent_command: str,
+    adapter_label: str,
     allow_workspace_execution: bool,
 ) -> dict[str, Any]:
     statuses = [result["status"] for result in results]
@@ -564,7 +593,7 @@ def build_report(
             ),
             "qualitative_rubric": "not automatically judged",
         },
-        "agent_command": agent_command,
+        "adapter": adapter_label,
         "cases": results,
     }
 
@@ -591,8 +620,14 @@ def _parser() -> argparse.ArgumentParser:
         "--agent-command",
         help=(
             "adapter command; placeholders: {task}, {workspace}, {skill}, {case_id}. "
-            "The same values are also exported as EQ_EVAL_* environment variables"
+            "The same values are also exported as EQ_EVAL_* environment variables. "
+            "Do not put secrets in command arguments"
         ),
+    )
+    parser.add_argument(
+        "--adapter-label",
+        default="external-agent",
+        help="non-sensitive adapter/model label stored in the report",
     )
     parser.add_argument(
         "--skill",
@@ -680,7 +715,7 @@ def main(argv: list[str] | None = None) -> int:
     ]
     report = build_report(
         results,
-        agent_command=args.agent_command,
+        adapter_label=args.adapter_label,
         allow_workspace_execution=args.allow_workspace_execution,
     )
 
