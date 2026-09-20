@@ -24,6 +24,7 @@ class PackageSkillTests(unittest.TestCase):
                 names = set(handle.namelist())
 
             self.assertIn("engineering-quality/SKILL.md", names)
+            self.assertIn("engineering-quality/agents/openai.yaml", names)
             self.assertIn("engineering-quality/references/principles.md", names)
             self.assertIn("engineering-quality/workflows/review.md", names)
             self.assertIn("engineering-quality/scripts/project_checks.py", names)
