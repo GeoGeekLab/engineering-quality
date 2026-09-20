@@ -258,6 +258,8 @@ def _format_agent_command(
         "task": case["task"],
         "workspace": str(workspace),
         "skill": str(skill),
+        "repo": str(ROOT),
+        "python": sys.executable,
     }
     formatted: list[str] = []
     for token in tokens:
@@ -648,7 +650,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--agent-command",
         help=(
-            "adapter command; placeholders: {task}, {workspace}, {skill}, {case_id}. "
+            "adapter command; placeholders: {task}, {workspace}, {skill}, {case_id}, "
+            "{repo}, {python}. "
             "The same values are also exported as EQ_EVAL_* environment variables. "
             "Do not put secrets in command arguments"
         ),
