@@ -140,6 +140,15 @@ class EvalRunnerTests(unittest.TestCase):
 
         self.assertEqual("not automatically judged", report["evidence_scope"]["qualitative_rubric"])
 
+    def test_staged_skill_excludes_eval_rubric(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            staged = run_evals.stage_skill_runtime(ROOT, Path(directory))
+
+            self.assertTrue(staged.is_file())
+            self.assertTrue((Path(directory) / "references" / "verification.md").is_file())
+            self.assertFalse((Path(directory) / "evals").exists())
+            self.assertFalse((Path(directory) / "tests").exists())
+
     def test_repository_cases_validate(self) -> None:
         cases = run_evals.load_cases(ROOT / "evals" / "cases.json")
         self.assertEqual([], run_evals.validate_cases(cases))
