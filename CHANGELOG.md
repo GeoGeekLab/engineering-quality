@@ -9,6 +9,7 @@ All notable changes to this project are documented here.
 - Pin GitHub Actions to immutable commit SHAs and enforce that policy in repository validation.
 - Add Dependabot updates for GitHub Actions, bounded workflow execution, and concurrency controls.
 - Split release construction from privileged publication and add signed artifact provenance with in-workflow verification.
+- Upgrade artifact transport to current GitHub Actions releases, verify an upload/download round trip in CI, and use the current `actions/attest` provenance action.
 
 ## 1.1.0 - 2026-09-19
 
