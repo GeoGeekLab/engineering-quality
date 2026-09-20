@@ -128,6 +128,7 @@ def run_codex(
         )
         env = _adapter_environment()
         env["HOME"] = str(home)
+        env["USERPROFILE"] = str(home)
         env["CODEX_HOME"] = str(home / ".codex")
         Path(env["CODEX_HOME"]).mkdir(parents=True, exist_ok=True)
 
