@@ -156,3 +156,12 @@ jobs:
           else
             gh release create "${RELEASE_TAG}"               dist/engineering-quality-*.zip               dist/engineering-quality-*.zip.sha256               --title "${title}"               --notes-file dist/RELEASE_NOTES.md
           fi
+
+      - name: Remove release trigger branch
+        if: success() && github.ref_type == 'branch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api --method DELETE \
+            "repos/${GITHUB_REPOSITORY}/git/refs/heads/${GITHUB_REF_NAME}"

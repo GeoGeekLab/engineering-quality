@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 1.2.3 - 2026-09-20
+
+- Add Evi (伊维), a clean British Shorthair mascot identity system for project branding.
+- Restore and validate automatic cleanup of successful `release/v<VERSION>` trigger branches.
+- Keep canonical mascot artwork as a required repository asset while excluding branding from the portable Skill runtime package.
+
 ## 1.2.2 - 2026-09-20
 
 - Give GitHub CLI an explicit repository context in the checkout-free publish job so Release creation no longer depends on local Git repository discovery.

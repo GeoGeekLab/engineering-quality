@@ -15,6 +15,10 @@ A portable Agent Skill for **Codex, Claude Code, ChatGPT, and other coding agent
 
 **Less taste. More invariants.**
 
+<br>
+
+<img src="assets/mascot/evi.jpg" alt="Evi" width="420">
+
 </div>
 
 ## Why this exists
@@ -294,7 +298,8 @@ workflows/                  feature / bug-fix / refactor / review / debug / perf
 references/                 verification / testing / security / compatibility / concurrency
 scripts/                    validation / packaging / project checks / eval adapters
 evals/                      executable behavioral fixtures + result schema
-docs/                       compatibility / release / governance / distribution
+docs/                       compatibility / release / governance / distribution / mascot
+assets/mascot/              Evi mascot + identity-system artwork
 .github/                    CI / release / issue forms / CODEOWNERS
 ```
 
