@@ -6,6 +6,8 @@ from __future__ import annotations
 import json
 import re
 import sys
+
+import run_evals
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -32,10 +34,12 @@ REQUIRED_PATHS = (
     "workflows/performance.md",
     "evals/cases.json",
     "evals/schema.json",
+    "evals/result-schema.json",
     "evals/README.md",
     "docs/compatibility.md",
     "docs/release.md",
     "scripts/project_checks.py",
+    "scripts/run_evals.py",
     "scripts/package_skill.py",
     "scripts/release_check.py",
     "scripts/release_notes.py",
@@ -214,6 +218,8 @@ def validate_workflow_action_pins(root: Path) -> list[str]:
 def validate_evals(root: Path) -> list[str]:
     cases_path = root / "evals" / "cases.json"
     schema_path = root / "evals" / "schema.json"
+    result_schema_path = root / "evals" / "result-schema.json"
+
     try:
         data = json.loads(cases_path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
@@ -224,47 +230,21 @@ def validate_evals(root: Path) -> list[str]:
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         return [f"evals/schema.json: invalid JSON: {exc}"]
 
+    try:
+        result_schema = json.loads(result_schema_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        return [f"evals/result-schema.json: invalid JSON: {exc}"]
+
     errors: list[str] = []
     if not isinstance(schema, dict) or schema.get("type") != "array":
         errors.append("evals/schema.json: expected an array schema")
+    if not isinstance(result_schema, dict) or result_schema.get("type") != "object":
+        errors.append("evals/result-schema.json: expected an object schema")
 
-    if not isinstance(data, list) or not data:
-        return errors + ["evals/cases.json: expected a non-empty list"]
+    if not isinstance(data, list):
+        return errors + ["evals/cases.json: expected an array"]
 
-    seen: set[str] = set()
-    required = ("id", "task", "must_do", "must_not_do")
-
-    for index, case in enumerate(data):
-        label = f"evals/cases.json[{index}]"
-        if not isinstance(case, dict):
-            errors.append(f"{label}: expected object")
-            continue
-
-        extra = sorted(set(case) - set(required))
-        if extra:
-            errors.append(f"{label}: unsupported keys: {', '.join(extra)}")
-
-        for key in required:
-            if key not in case:
-                errors.append(f"{label}: missing {key}")
-
-        case_id = case.get("id")
-        if not isinstance(case_id, str) or not NAME_RE.fullmatch(case_id):
-            errors.append(f"{label}: id must use lowercase kebab-case")
-        elif case_id in seen:
-            errors.append(f"{label}: duplicate id {case_id}")
-        else:
-            seen.add(case_id)
-
-        if not isinstance(case.get("task"), str) or not case.get("task"):
-            errors.append(f"{label}: task must be a non-empty string")
-
-        for key in ("must_do", "must_not_do"):
-            value = case.get(key)
-            if not isinstance(value, list) or not value or not all(
-                isinstance(item, str) and item for item in value
-            ):
-                errors.append(f"{label}: {key} must be a non-empty string list")
+    errors.extend(f"evals/cases.json: {error}" for error in run_evals.validate_cases(data))
     return errors
 
 

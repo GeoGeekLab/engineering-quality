@@ -71,5 +71,24 @@ class ValidateSkillTests(unittest.TestCase):
             self.assertEqual([], validate_skill.validate_workflow_action_pins(root))
 
 
+    def test_eval_validation_rejects_unsupported_case_keys(self) -> None:
+        cases = [
+            {
+                "id": "sample-case",
+                "task": "Example",
+                "must_do": ["do this"],
+                "must_not_do": ["not that"],
+                "fixture": {"files": {"a.txt": "x\n"}},
+                "checks": [{"type": "file_exists", "path": "a.txt"}],
+                "unexpected": True,
+            }
+        ]
+
+        import run_evals
+
+        errors = run_evals.validate_cases(cases)
+
+        self.assertTrue(any("unsupported keys" in error for error in errors))
+
 if __name__ == "__main__":
     unittest.main()

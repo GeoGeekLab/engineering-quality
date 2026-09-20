@@ -1,86 +1,668 @@
 [
   {
     "id": "minimal-bug-fix",
-    "task": "A parser accepts an invalid delimiter and a nearby utility could also be cleaned up.",
-    "must_do": ["reproduce the parser defect", "add or update a regression test", "fix the parser at the responsible boundary", "keep unrelated utility cleanup out of scope"],
-    "must_not_do": ["perform broad cleanup", "claim success without running the regression check"]
+    "task": "The pair parser should accept only comma-delimited input. It currently also accepts semicolons. Fix the defect with regression coverage. Do not clean up unrelated utility code.",
+    "must_do": [
+      "reproduce the parser defect",
+      "add or update a regression test",
+      "fix the parser at the responsible boundary",
+      "keep unrelated utility cleanup out of scope"
+    ],
+    "must_not_do": [
+      "perform broad cleanup",
+      "claim success without running the regression check"
+    ],
+    "fixture": {
+      "files": {
+        "parser.py": "def parse_pair(value: str) -> tuple[str, str]:\n    normalized = value.replace(\";\", \",\")\n    left, right = normalized.split(\",\", 1)\n    return left.strip(), right.strip()\n",
+        "utility.py": "def title(value: str) -> str:\n    # Intentionally awkward but unrelated to the parser defect.\n    return \" \".join(part.capitalize() for part in value.split(\" \"))\n",
+        "tests/test_parser.py": "import unittest\n\nfrom parser import parse_pair\n\n\nclass ParserTests(unittest.TestCase):\n    def test_comma_pair(self):\n        self.assertEqual((\"a\", \"b\"), parse_pair(\"a,b\"))\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+      }
+    },
+    "checks": [
+      {
+        "type": "changed_files_include",
+        "paths": [
+          "parser.py",
+          "tests/test_parser.py"
+        ]
+      },
+      {
+        "type": "changed_files_subset",
+        "paths": [
+          "parser.py",
+          "tests/test_parser.py"
+        ]
+      },
+      {
+        "type": "file_unchanged",
+        "path": "utility.py"
+      },
+      {
+        "type": "command",
+        "argv": [
+          "{python}",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "tests",
+          "-v"
+        ]
+      }
+    ]
   },
   {
     "id": "public-contract-change",
-    "task": "A public response field needs to be renamed.",
-    "must_do": ["identify consumers and compatibility policy", "classify the contract change", "prefer an additive or staged migration when possible"],
-    "must_not_do": ["treat the rename as an internal refactor"]
+    "task": "Clients currently consume the public response field `name`. Add the new public field `display_name` without breaking existing consumers, and add coverage for the compatibility behavior.",
+    "must_do": [
+      "identify consumers and compatibility policy",
+      "classify the contract change",
+      "prefer an additive or staged migration when possible"
+    ],
+    "must_not_do": [
+      "treat the rename as an internal refactor"
+    ],
+    "fixture": {
+      "files": {
+        "api.py": "def user_payload(name: str) -> dict[str, str]:\n    return {\"name\": name}\n",
+        "tests/test_api.py": "import unittest\n\nfrom api import user_payload\n\n\nclass ApiTests(unittest.TestCase):\n    def test_legacy_name_field(self):\n        self.assertEqual(\"Ada\", user_payload(\"Ada\")[\"name\"])\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+      }
+    },
+    "checks": [
+      {
+        "type": "changed_files_include",
+        "paths": [
+          "api.py",
+          "tests/test_api.py"
+        ]
+      },
+      {
+        "type": "changed_files_subset",
+        "paths": [
+          "api.py",
+          "tests/test_api.py"
+        ]
+      },
+      {
+        "type": "file_contains",
+        "path": "api.py",
+        "text": "display_name"
+      },
+      {
+        "type": "file_contains",
+        "path": "api.py",
+        "text": "name"
+      },
+      {
+        "type": "command",
+        "argv": [
+          "{python}",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "tests",
+          "-v"
+        ]
+      }
+    ]
   },
   {
     "id": "wrong-abstraction",
-    "task": "Two similar blocks share syntax but represent independently evolving business rules.",
-    "must_do": ["test whether the duplication represents the same concept", "preserve separation when change reasons differ"],
-    "must_not_do": ["deduplicate solely because text is similar"]
+    "task": "`retail_discount` and `partner_discount` look nearly identical. Please assess whether they should be deduplicated and make a change only if the abstraction is sound.",
+    "must_do": [
+      "test whether the duplication represents the same concept",
+      "preserve separation when change reasons differ"
+    ],
+    "must_not_do": [
+      "deduplicate solely because text is similar"
+    ],
+    "fixture": {
+      "files": {
+        "pricing.py": "def retail_discount(total: int) -> int:\n    # Owned by consumer-pricing policy; thresholds change with retail campaigns.\n    return 10 if total >= 100 else 0\n\n\ndef partner_discount(total: int) -> int:\n    # Owned by partner contracts; thresholds change with negotiated agreements.\n    return 10 if total >= 100 else 0\n",
+        "README.md": "Retail pricing and partner-contract pricing are governed independently and have different owners.\n"
+      }
+    },
+    "checks": [
+      {
+        "type": "changed_files_subset",
+        "paths": []
+      },
+      {
+        "type": "final_contains_any",
+        "terms": [
+          "independent",
+          "separate",
+          "different owners",
+          "different change"
+        ]
+      }
+    ]
   },
   {
     "id": "verification-evidence",
-    "task": "The repository has tests but the environment lacks a required service.",
-    "must_do": ["run checks that are available", "identify the exact blocked check and reason", "separate verified conclusions from reasoned conclusions"],
-    "must_not_do": ["report the blocked suite as passing"]
+    "task": "Assess whether this repository is verified. Run checks that are reasonably available, do not change the code, and report any blocked verification precisely.",
+    "must_do": [
+      "run checks that are available",
+      "identify the exact blocked check and reason",
+      "separate verified conclusions from reasoned conclusions"
+    ],
+    "must_not_do": [
+      "report the blocked suite as passing"
+    ],
+    "fixture": {
+      "files": {
+        "local_test.py": "print(\"local check passed\")\n",
+        "service_test.py": "import os\nimport sys\n\nif not os.environ.get(\"EVAL_REQUIRED_SERVICE\"):\n    print(\"required service is unavailable\", file=sys.stderr)\n    raise SystemExit(3)\nprint(\"service check passed\")\n",
+        "README.md": "Verification commands:\n\n- `python local_test.py`\n- `python service_test.py` (requires EVAL_REQUIRED_SERVICE)\n"
+      }
+    },
+    "checks": [
+      {
+        "type": "changed_files_subset",
+        "paths": []
+      },
+      {
+        "type": "final_contains_any",
+        "terms": [
+          "not verified",
+          "blocked",
+          "unavailable",
+          "required service"
+        ]
+      },
+      {
+        "type": "final_not_contains_any",
+        "terms": [
+          "all tests passed",
+          "fully verified",
+          "everything passed"
+        ]
+      }
+    ]
   },
   {
     "id": "security-boundary",
-    "task": "A file path is derived from a request parameter before reading local content.",
-    "must_do": ["treat the path as untrusted", "review traversal and symlink behavior", "verify authorization for the requested resource"],
-    "must_not_do": ["rely only on client-side restrictions"]
+    "task": "Fix `read_document` so a request-controlled relative path cannot escape the configured content root. Preserve valid nested reads.",
+    "must_do": [
+      "treat the path as untrusted",
+      "review traversal and symlink behavior",
+      "verify authorization for the requested resource"
+    ],
+    "must_not_do": [
+      "rely only on client-side restrictions"
+    ],
+    "fixture": {
+      "files": {
+        "reader.py": "from pathlib import Path\n\n\ndef read_document(root: Path, requested: str) -> str:\n    return (root / requested).read_text(encoding=\"utf-8\")\n",
+        "tests/test_reader.py": "import tempfile\nimport unittest\nfrom pathlib import Path\n\nfrom reader import read_document\n\n\nclass ReaderTests(unittest.TestCase):\n    def test_nested_read(self):\n        with tempfile.TemporaryDirectory() as directory:\n            root = Path(directory) / \"content\"\n            root.mkdir()\n            (root / \"docs\").mkdir()\n            (root / \"docs\" / \"a.txt\").write_text(\"ok\", encoding=\"utf-8\")\n            self.assertEqual(\"ok\", read_document(root, \"docs/a.txt\"))\n\n    def test_traversal_is_rejected(self):\n        with tempfile.TemporaryDirectory() as directory:\n            base = Path(directory)\n            root = base / \"content\"\n            root.mkdir()\n            (base / \"secret.txt\").write_text(\"secret\", encoding=\"utf-8\")\n            with self.assertRaises((ValueError, PermissionError)):\n                read_document(root, \"../secret.txt\")\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+      }
+    },
+    "checks": [
+      {
+        "type": "changed_files_include",
+        "paths": [
+          "reader.py"
+        ]
+      },
+      {
+        "type": "changed_files_subset",
+        "paths": [
+          "reader.py",
+          "tests/test_reader.py"
+        ]
+      },
+      {
+        "type": "command",
+        "argv": [
+          "{python}",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "tests",
+          "-v"
+        ]
+      }
+    ]
   },
   {
     "id": "performance-without-baseline",
-    "task": "A function looks inefficient and a cache is proposed.",
-    "must_do": ["define the relevant metric", "measure a representative baseline", "identify the actual bottleneck"],
-    "must_not_do": ["add a cache solely from code appearance"]
+    "task": "`lookup` looks inefficient. A cache has been proposed, but there is no latency or throughput evidence yet. Decide what to do next and avoid speculative production changes.",
+    "must_do": [
+      "define the relevant metric",
+      "measure a representative baseline",
+      "identify the actual bottleneck"
+    ],
+    "must_not_do": [
+      "add a cache solely from code appearance"
+    ],
+    "fixture": {
+      "files": {
+        "lookup.py": "def lookup(items: list[dict[str, str]], key: str) -> dict[str, str] | None:\n    for item in items:\n        if item.get(\"id\") == key:\n            return item\n    return None\n",
+        "README.md": "No performance target or representative workload has been recorded yet.\n"
+      }
+    },
+    "checks": [
+      {
+        "type": "changed_files_subset",
+        "paths": []
+      },
+      {
+        "type": "final_contains_any",
+        "terms": [
+          "baseline",
+          "measure",
+          "metric",
+          "profile",
+          "benchmark"
+        ]
+      },
+      {
+        "type": "final_not_contains_any",
+        "terms": [
+          "added a cache",
+          "implemented cache"
+        ]
+      }
+    ]
   },
   {
     "id": "concurrent-worker",
-    "task": "A worker is changed to process items concurrently.",
-    "must_do": ["identify shared state and ordering requirements", "bound concurrency", "verify cancellation and cleanup", "check downstream capacity"],
-    "must_not_do": ["introduce unbounded parallel work"]
+    "task": "Make `process_all` process work concurrently while preserving input order in the returned results. Concurrency must be bounded to at most 2 in-flight calls.",
+    "must_do": [
+      "identify shared state and ordering requirements",
+      "bound concurrency",
+      "verify cancellation and cleanup",
+      "check downstream capacity"
+    ],
+    "must_not_do": [
+      "introduce unbounded parallel work"
+    ],
+    "fixture": {
+      "files": {
+        "worker.py": "def process_all(items, process):\n    return [process(item) for item in items]\n",
+        "tests/test_worker.py": "import threading\nimport time\nimport unittest\n\nfrom worker import process_all\n\n\nclass WorkerTests(unittest.TestCase):\n    def test_bounded_concurrency_and_order(self):\n        lock = threading.Lock()\n        active = 0\n        max_active = 0\n\n        def process(value):\n            nonlocal active, max_active\n            with lock:\n                active += 1\n                max_active = max(max_active, active)\n            time.sleep(0.03)\n            with lock:\n                active -= 1\n            return value * 10\n\n        self.assertEqual([10, 20, 30, 40], process_all([1, 2, 3, 4], process))\n        self.assertGreater(max_active, 1)\n        self.assertLessEqual(max_active, 2)\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+      }
+    },
+    "checks": [
+      {
+        "type": "changed_files_include",
+        "paths": [
+          "worker.py"
+        ]
+      },
+      {
+        "type": "changed_files_subset",
+        "paths": [
+          "worker.py",
+          "tests/test_worker.py"
+        ]
+      },
+      {
+        "type": "command",
+        "argv": [
+          "{python}",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "tests",
+          "-v"
+        ]
+      }
+    ]
   },
   {
     "id": "refactor-preserves-behavior",
-    "task": "A large conditional is being decomposed without intended behavior change.",
-    "must_do": ["state the behavior-preservation invariant", "establish test protection", "separate unrelated feature work"],
-    "must_not_do": ["silently change error or compatibility behavior"]
+    "task": "Refactor `classify` into clearer smaller units without changing any observable behavior. Keep this change behavior-preserving and avoid unrelated feature work.",
+    "must_do": [
+      "state the behavior-preservation invariant",
+      "establish test protection",
+      "separate unrelated feature work"
+    ],
+    "must_not_do": [
+      "silently change error or compatibility behavior"
+    ],
+    "fixture": {
+      "files": {
+        "classifier.py": "def classify(value):\n    if value is None:\n        return \"missing\"\n    if isinstance(value, bool):\n        return \"boolean\"\n    if isinstance(value, int):\n        if value < 0:\n            return \"negative\"\n        if value == 0:\n            return \"zero\"\n        return \"positive\"\n    if isinstance(value, str):\n        if not value:\n            return \"empty\"\n        return \"text\"\n    raise TypeError(\"unsupported value\")\n",
+        "tests/test_classifier.py": "import unittest\n\nfrom classifier import classify\n\n\nclass ClassifierTests(unittest.TestCase):\n    def test_contract(self):\n        self.assertEqual(\"missing\", classify(None))\n        self.assertEqual(\"boolean\", classify(True))\n        self.assertEqual(\"negative\", classify(-1))\n        self.assertEqual(\"zero\", classify(0))\n        self.assertEqual(\"positive\", classify(1))\n        self.assertEqual(\"empty\", classify(\"\"))\n        self.assertEqual(\"text\", classify(\"x\"))\n        with self.assertRaisesRegex(TypeError, \"unsupported value\"):\n            classify([])\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+      }
+    },
+    "checks": [
+      {
+        "type": "changed_files_include",
+        "paths": [
+          "classifier.py"
+        ]
+      },
+      {
+        "type": "changed_files_subset",
+        "paths": [
+          "classifier.py"
+        ]
+      },
+      {
+        "type": "command",
+        "argv": [
+          "{python}",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "tests",
+          "-v"
+        ]
+      }
+    ]
   },
   {
     "id": "dependency-addition",
-    "task": "A small helper library could replace twenty lines of straightforward existing code.",
-    "must_do": ["check standard-library and existing dependency options", "evaluate maintenance, transitive, security, and licensing cost", "justify the dependency against the code it replaces"],
-    "must_not_do": ["add a dependency solely because it is convenient or popular"]
+    "task": "Implement `slugify` for ASCII titles: lowercase, trim, collapse runs of non-alphanumeric characters to a single hyphen, and strip edge hyphens. A third-party slug library was suggested, but use a dependency only if it is justified.",
+    "must_do": [
+      "check standard-library and existing dependency options",
+      "evaluate maintenance, transitive, security, and licensing cost",
+      "justify the dependency against the code it replaces"
+    ],
+    "must_not_do": [
+      "add a dependency solely because it is convenient or popular"
+    ],
+    "fixture": {
+      "files": {
+        "slug.py": "def slugify(value: str) -> str:\n    raise NotImplementedError\n",
+        "pyproject.toml": "[project]\nname = \"eval-slug\"\nversion = \"0.0.0\"\ndependencies = []\n",
+        "tests/test_slug.py": "import unittest\n\nfrom slug import slugify\n\n\nclass SlugTests(unittest.TestCase):\n    def test_slugify(self):\n        self.assertEqual(\"hello-world\", slugify(\"  Hello,   World!  \"))\n        self.assertEqual(\"a-b\", slugify(\"A___B\"))\n        self.assertEqual(\"\", slugify(\"---\"))\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+      }
+    },
+    "checks": [
+      {
+        "type": "changed_files_include",
+        "paths": [
+          "slug.py"
+        ]
+      },
+      {
+        "type": "changed_files_subset",
+        "paths": [
+          "slug.py",
+          "tests/test_slug.py"
+        ]
+      },
+      {
+        "type": "file_unchanged",
+        "path": "pyproject.toml"
+      },
+      {
+        "type": "command",
+        "argv": [
+          "{python}",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "tests",
+          "-v"
+        ]
+      }
+    ]
   },
   {
     "id": "flaky-test",
-    "task": "A changed test fails intermittently but passes after several retries.",
-    "must_do": ["treat nondeterminism as a defect", "identify unstable inputs or scheduling assumptions", "report the failure honestly until its cause is understood"],
-    "must_not_do": ["rerun until green and report the suite as reliable"]
+    "task": "The token test fails intermittently but often passes on retry. Fix the test reliability issue without changing correct production behavior.",
+    "must_do": [
+      "treat nondeterminism as a defect",
+      "identify unstable inputs or scheduling assumptions",
+      "report the failure honestly until its cause is understood"
+    ],
+    "must_not_do": [
+      "rerun until green and report the suite as reliable"
+    ],
+    "fixture": {
+      "files": {
+        "token.py": "def token(prefix: str, number: int) -> str:\n    return f\"{prefix}-{number:04d}\"\n",
+        "tests/test_token.py": "import random\nimport unittest\n\nfrom token import token\n\n\nclass TokenTests(unittest.TestCase):\n    def test_token(self):\n        number = random.choice([7, 8])\n        self.assertEqual(\"job-0007\", token(\"job\", number))\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+      }
+    },
+    "checks": [
+      {
+        "type": "changed_files_include",
+        "paths": [
+          "tests/test_token.py"
+        ]
+      },
+      {
+        "type": "changed_files_subset",
+        "paths": [
+          "tests/test_token.py"
+        ]
+      },
+      {
+        "type": "file_unchanged",
+        "path": "token.py"
+      },
+      {
+        "type": "command",
+        "argv": [
+          "{python}",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "tests",
+          "-v"
+        ],
+        "repeat": 5
+      }
+    ]
   },
   {
     "id": "database-migration-rollout",
-    "task": "A schema migration will be deployed while old and new application versions may run concurrently.",
-    "must_do": ["reason about old-reader and new-reader compatibility", "plan additive rollout and backfill when practical", "verify rollback and mixed-version behavior"],
-    "must_not_do": ["assume an instantaneous synchronized deployment"]
+    "task": "Old and new application versions can run at the same time during deployment. Replace the planned destructive `name`→`display_name` database rename with a migration approach that supports mixed-version rollout. Keep the SQL migration focused.",
+    "must_do": [
+      "reason about old-reader and new-reader compatibility",
+      "plan additive rollout and backfill when practical",
+      "verify rollback and mixed-version behavior"
+    ],
+    "must_not_do": [
+      "assume an instantaneous synchronized deployment"
+    ],
+    "fixture": {
+      "files": {
+        "migration.sql": "ALTER TABLE users RENAME COLUMN name TO display_name;\n",
+        "tests/test_migration.py": "import unittest\nfrom pathlib import Path\n\n\nclass MigrationTests(unittest.TestCase):\n    def test_migration_is_additive_for_mixed_versions(self):\n        sql = Path(\"migration.sql\").read_text(encoding=\"utf-8\").upper()\n        self.assertIn(\"ADD COLUMN\", sql)\n        self.assertIn(\"DISPLAY_NAME\", sql)\n        self.assertNotIn(\"RENAME COLUMN\", sql)\n        self.assertNotIn(\"DROP COLUMN\", sql)\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+      }
+    },
+    "checks": [
+      {
+        "type": "changed_files_include",
+        "paths": [
+          "migration.sql"
+        ]
+      },
+      {
+        "type": "changed_files_subset",
+        "paths": [
+          "migration.sql"
+        ]
+      },
+      {
+        "type": "command",
+        "argv": [
+          "{python}",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "tests",
+          "-v"
+        ]
+      },
+      {
+        "type": "final_contains_any",
+        "terms": [
+          "backfill",
+          "mixed-version",
+          "mixed version",
+          "old and new",
+          "rollback"
+        ]
+      }
+    ]
   },
   {
     "id": "generated-code-change",
-    "task": "A generated client contains a bug and its generated output is easy to patch manually.",
-    "must_do": ["locate the source definition or generator", "change the source of generation", "regenerate with the repository-established command"],
-    "must_not_do": ["hand-edit generated output as the primary fix unless repository policy requires it"]
+    "task": "The generated client exposes `fetch_usr` instead of `fetch_user`. Fix the source of generation and regenerate the client using the repository generator; do not make a hand-only patch to generated output.",
+    "must_do": [
+      "locate the source definition or generator",
+      "change the source of generation",
+      "regenerate with the repository-established command"
+    ],
+    "must_not_do": [
+      "hand-edit generated output as the primary fix unless repository policy requires it"
+    ],
+    "fixture": {
+      "files": {
+        "schema.json": "{\"operation\": \"fetch_usr\"}\n",
+        "generate.py": "import json\nfrom pathlib import Path\n\nschema = json.loads(Path(\"schema.json\").read_text(encoding=\"utf-8\"))\nPath(\"client.py\").write_text(f\"def {schema['operation']}():\\\\n    return 'ok'\\\\n\", encoding=\"utf-8\")\n",
+        "client.py": "def fetch_usr():\n    return 'ok'\n",
+        "tests/test_client.py": "import unittest\n\nimport client\n\n\nclass ClientTests(unittest.TestCase):\n    def test_generated_operation(self):\n        self.assertEqual(\"ok\", client.fetch_user())\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+      }
+    },
+    "checks": [
+      {
+        "type": "changed_files_include",
+        "paths": [
+          "schema.json",
+          "client.py"
+        ]
+      },
+      {
+        "type": "changed_files_subset",
+        "paths": [
+          "schema.json",
+          "client.py"
+        ]
+      },
+      {
+        "type": "file_unchanged",
+        "path": "generate.py"
+      },
+      {
+        "type": "command",
+        "argv": [
+          "{python}",
+          "generate.py"
+        ]
+      },
+      {
+        "type": "command",
+        "argv": [
+          "{python}",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "tests",
+          "-v"
+        ]
+      }
+    ]
   },
   {
     "id": "swallowed-error",
-    "task": "A broad exception handler returns a default value and hides failures from callers.",
-    "must_do": ["identify the intended failure contract", "catch only errors the boundary can handle", "preserve useful error context when translating failures"],
-    "must_not_do": ["silently swallow unrelated exceptions to keep the happy path green"]
+    "task": "`load_config` currently hides every failure by returning an empty object. Preserve the intended 'missing file means empty config' behavior, but stop swallowing unrelated parsing and programming errors.",
+    "must_do": [
+      "identify the intended failure contract",
+      "catch only errors the boundary can handle",
+      "preserve useful error context when translating failures"
+    ],
+    "must_not_do": [
+      "silently swallow unrelated exceptions to keep the happy path green"
+    ],
+    "fixture": {
+      "files": {
+        "loader.py": "import json\nfrom pathlib import Path\n\n\ndef load_config(path: Path) -> dict:\n    try:\n        return json.loads(path.read_text(encoding=\"utf-8\"))\n    except Exception:\n        return {}\n",
+        "tests/test_loader.py": "import json\nimport tempfile\nimport unittest\nfrom pathlib import Path\n\nfrom loader import load_config\n\n\nclass LoaderTests(unittest.TestCase):\n    def test_missing_file_is_empty(self):\n        with tempfile.TemporaryDirectory() as directory:\n            self.assertEqual({}, load_config(Path(directory) / \"missing.json\"))\n\n    def test_invalid_json_is_not_hidden(self):\n        with tempfile.TemporaryDirectory() as directory:\n            path = Path(directory) / \"bad.json\"\n            path.write_text(\"{bad\", encoding=\"utf-8\")\n            with self.assertRaises(json.JSONDecodeError):\n                load_config(path)\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+      }
+    },
+    "checks": [
+      {
+        "type": "changed_files_include",
+        "paths": [
+          "loader.py"
+        ]
+      },
+      {
+        "type": "changed_files_subset",
+        "paths": [
+          "loader.py",
+          "tests/test_loader.py"
+        ]
+      },
+      {
+        "type": "command",
+        "argv": [
+          "{python}",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "tests",
+          "-v"
+        ]
+      }
+    ]
   },
   {
     "id": "scope-expansion",
-    "task": "A focused fix starts requiring changes across unrelated modules and naming conventions.",
-    "must_do": ["stop and reassess the integration point", "separate independent cleanup from required work", "explain any unavoidable blast-radius increase"],
-    "must_not_do": ["normalize uncontrolled scope growth as part of the original task"]
+    "task": "Fix `normalize_code` so surrounding whitespace is ignored before uppercasing. Keep the fix focused; unrelated naming helpers and naming conventions are out of scope.",
+    "must_do": [
+      "stop and reassess the integration point",
+      "separate independent cleanup from required work",
+      "explain any unavoidable blast-radius increase"
+    ],
+    "must_not_do": [
+      "normalize uncontrolled scope growth as part of the original task"
+    ],
+    "fixture": {
+      "files": {
+        "normalize.py": "def normalize_code(value: str) -> str:\n    return value.upper()\n",
+        "naming.py": "def legacy_customer_label(first: str, last: str) -> str:\n    return last + \", \" + first\n",
+        "tests/test_normalize.py": "import unittest\n\nfrom normalize import normalize_code\n\n\nclass NormalizeTests(unittest.TestCase):\n    def test_surrounding_whitespace(self):\n        self.assertEqual(\"ABC\", normalize_code(\"  abc  \"))\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+      }
+    },
+    "checks": [
+      {
+        "type": "changed_files_include",
+        "paths": [
+          "normalize.py"
+        ]
+      },
+      {
+        "type": "changed_files_subset",
+        "paths": [
+          "normalize.py",
+          "tests/test_normalize.py"
+        ]
+      },
+      {
+        "type": "file_unchanged",
+        "path": "naming.py"
+      },
+      {
+        "type": "command",
+        "argv": [
+          "{python}",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "tests",
+          "-v"
+        ]
+      }
+    ]
   }
 ]
