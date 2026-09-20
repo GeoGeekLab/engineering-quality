@@ -752,6 +752,14 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(
             "invalid --pass-env names: " + ", ".join(sorted(set(invalid_env_names)))
         )
+    missing_env_names = [
+        name for name in args.pass_env if name not in os.environ
+    ]
+    if missing_env_names:
+        parser.error(
+            "--pass-env variables are not set: "
+            + ", ".join(sorted(set(missing_env_names)))
+        )
 
     try:
         cases = load_cases(args.cases)
