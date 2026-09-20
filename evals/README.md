@@ -69,9 +69,12 @@ Example:
 ```bash
 python scripts/run_evals.py \
   --agent-command 'my-agent --prompt {task}' \
+  --adapter-label my-agent-current \
   --allow-workspace-execution \
   --output eval-results/my-agent.json
 ```
+
+Do not put credentials in `--agent-command` arguments. The report stores only the non-sensitive `--adapter-label`, not the raw adapter command. Agent stdout/stderr is preserved as evidence and may itself contain sensitive data, so treat result files accordingly.
 
 Available command placeholders:
 
