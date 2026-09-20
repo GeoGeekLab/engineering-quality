@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import os
 import shlex
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -48,6 +50,36 @@ class EvalRunnerTests(unittest.TestCase):
             encoding="utf-8",
         )
         return script
+
+    def test_agent_environment_does_not_inherit_unrequested_secrets(self) -> None:
+        with mock.patch.dict(
+            os.environ,
+            {
+                "PATH": "/usr/bin",
+                "CODEX_API_KEY": "explicit",
+                "UNRELATED_SECRET": "do-not-forward",
+                "HOME": "/sensitive/home",
+            },
+            clear=True,
+        ):
+            env = run_evals._isolated_environment(("CODEX_API_KEY",))
+
+        self.assertEqual("explicit", env["CODEX_API_KEY"])
+        self.assertNotIn("UNRELATED_SECRET", env)
+        self.assertNotIn("HOME", env)
+
+    def test_check_environment_uses_isolated_home(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            with mock.patch.dict(
+                os.environ,
+                {"PATH": "/usr/bin", "HOME": "/sensitive/home"},
+                clear=True,
+            ):
+                env = run_evals._isolated_environment(home=home)
+
+        self.assertEqual(str(home), env["HOME"])
+        self.assertEqual(str(home), env["USERPROFILE"])
 
     def test_validate_cases_rejects_unsafe_fixture_path(self) -> None:
         case = self.sample_case()
