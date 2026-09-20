@@ -321,6 +321,7 @@ def run_agent(
             "EQ_EVAL_TASK": case["task"],
             "EQ_EVAL_WORKSPACE": str(workspace),
             "EQ_EVAL_SKILL_PATH": str(skill),
+            "EQ_EVAL_PASSED_ENV": ",".join(pass_env),
         }
     )
     try:
