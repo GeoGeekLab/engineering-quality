@@ -60,6 +60,19 @@ class ReleaseCheckTests(unittest.TestCase):
         self.assertTrue(any("main-commit gate" in error for error in errors))
         self.assertTrue(any("release tag creation" in error for error in errors))
 
+    def test_release_tag_probe_does_not_capture_404_body_as_sha(self) -> None:
+        workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            'if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}"',
+            workflow,
+        )
+        self.assertNotIn(
+            "--jq '.object.sha' 2>/dev/null || true",
+            workflow,
+        )
+
     def test_release_notes_extract_current_version(self) -> None:
         version = release_check.read_version(ROOT)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
