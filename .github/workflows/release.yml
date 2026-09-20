@@ -153,5 +153,5 @@ jobs:
 
             gh release upload "${RELEASE_TAG}"               dist/engineering-quality-*.zip               dist/engineering-quality-*.zip.sha256               --clobber
           else
-            gh release create "${RELEASE_TAG}"               dist/engineering-quality-*.zip               dist/engineering-quality-*.zip.sha256               --verify-tag               --title "${title}"               --notes-file dist/RELEASE_NOTES.md
+            gh release create "${RELEASE_TAG}"               dist/engineering-quality-*.zip               dist/engineering-quality-*.zip.sha256               --title "${title}"               --notes-file dist/RELEASE_NOTES.md
           fi
