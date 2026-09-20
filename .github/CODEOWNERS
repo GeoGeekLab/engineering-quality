@@ -1,0 +1,17 @@
+# Default owner
+* @GeoGeekLab
+
+# Contract and distribution surfaces
+/SKILL.md @GeoGeekLab
+/agents/ @GeoGeekLab
+/.claude-plugin/ @GeoGeekLab
+/scripts/package_skill.py @GeoGeekLab
+/scripts/release_check.py @GeoGeekLab
+/.github/workflows/ @GeoGeekLab
+/.github/dependabot.yml @GeoGeekLab
+
+# Governance and security policy
+/SECURITY.md @GeoGeekLab
+/CODE_OF_CONDUCT.md @GeoGeekLab
+/GOVERNANCE.md @GeoGeekLab
+/.github/CODEOWNERS @GeoGeekLab
