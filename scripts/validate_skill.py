@@ -42,6 +42,7 @@ REQUIRED_PATHS = (
     "docs/release.md",
     "scripts/project_checks.py",
     "scripts/run_evals.py",
+    "scripts/host_eval_adapter.py",
     "scripts/package_skill.py",
     "scripts/release_check.py",
     "scripts/release_notes.py",
