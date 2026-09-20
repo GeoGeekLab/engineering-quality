@@ -23,6 +23,23 @@ class ReleaseCheckTests(unittest.TestCase):
         errors = release_check.check_release(ROOT, "v999.0.0")
         self.assertTrue(any("does not match VERSION" in error for error in errors))
 
+    def test_release_workflow_reconciles_existing_release(self) -> None:
+        workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertEqual([], release_check.validate_release_workflow(workflow))
+
+    def test_create_only_release_workflow_is_rejected(self) -> None:
+        workflow = """
+        python scripts/release_check.py
+        make package
+        python scripts/release_notes.py
+        gh release create "$GITHUB_REF_NAME"
+        """
+        errors = release_check.validate_release_workflow(workflow)
+        self.assertTrue(any("existing-release detection" in error for error in errors))
+        self.assertTrue(any("asset replacement" in error for error in errors))
+
     def test_release_notes_extract_current_version(self) -> None:
         version = release_check.read_version(ROOT)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
