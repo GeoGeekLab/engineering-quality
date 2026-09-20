@@ -15,6 +15,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+import package_skill
+
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CASES = ROOT / "evals" / "cases.json"
 NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -184,6 +186,17 @@ def materialize_fixture(case: dict[str, Any], workspace: Path) -> None:
         path = workspace / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
+
+
+def stage_skill_runtime(source_root: Path, target: Path) -> Path:
+    source_root = source_root.resolve()
+    target.mkdir(parents=True, exist_ok=True)
+    for source in package_skill.payload_files(source_root):
+        relative = source.relative_to(source_root)
+        destination = target / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(source.read_bytes())
+    return target / "SKILL.md"
 
 
 def _file_digest(path: Path) -> str:
@@ -629,10 +642,13 @@ def _parser() -> argparse.ArgumentParser:
         help="non-sensitive adapter/model label stored in the report",
     )
     parser.add_argument(
-        "--skill",
+        "--skill-root",
         type=Path,
-        default=ROOT / "SKILL.md",
-        help="skill entry file exposed to the agent adapter",
+        default=ROOT,
+        help=(
+            "source repository used to stage the runtime skill payload; evals and tests "
+            "are excluded using the distribution package contract"
+        ),
     )
     parser.add_argument("--output", type=Path, help="write machine-readable JSON report")
     parser.add_argument("--agent-timeout", type=int, default=900)
@@ -699,19 +715,22 @@ def main(argv: list[str] | None = None) -> int:
     if args.workspace_parent:
         args.workspace_parent.mkdir(parents=True, exist_ok=True)
 
-    results = [
-        evaluate_case(
-            case,
-            agent_command=args.agent_command,
-            skill=args.skill.resolve(),
-            agent_timeout=args.agent_timeout,
-            check_timeout=args.check_timeout,
-            allow_workspace_execution=args.allow_workspace_execution,
-            keep_workspace=args.keep_workspaces,
-            workspace_parent=args.workspace_parent,
-        )
-        for case in cases
-    ]
+    with tempfile.TemporaryDirectory(prefix="engineering-quality-skill-") as skill_temp:
+        staged_skill = stage_skill_runtime(args.skill_root, Path(skill_temp))
+        results = [
+            evaluate_case(
+                case,
+                agent_command=args.agent_command,
+                skill=staged_skill,
+                agent_timeout=args.agent_timeout,
+                check_timeout=args.check_timeout,
+                allow_workspace_execution=args.allow_workspace_execution,
+                keep_workspace=args.keep_workspaces,
+                workspace_parent=args.workspace_parent,
+            )
+            for case in cases
+        ]
+
     report = build_report(
         results,
         adapter_label=args.adapter_label,
