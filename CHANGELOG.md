@@ -6,6 +6,9 @@ All notable changes to this project are documented here.
 
 - Make tagged-release publication rerunnable when a GitHub Release already exists, including metadata reconciliation and replacement of expected distribution assets.
 - Add a regression check that prevents returning to a create-only release workflow.
+- Pin GitHub Actions to immutable commit SHAs and enforce that policy in repository validation.
+- Add Dependabot updates for GitHub Actions, bounded workflow execution, and concurrency controls.
+- Split release construction from privileged publication and add signed artifact provenance with in-workflow verification.
 
 ## 1.1.0 - 2026-09-19
 
