@@ -22,6 +22,7 @@ REQUIRED_PATHS = (
     "VERSION",
     "CHANGELOG.md",
     ".github/dependabot.yml",
+    "agents/openai.yaml",
     "references/principles.md",
     "references/verification.md",
     "references/review-rubric.md",
@@ -97,6 +98,85 @@ def validate_frontmatter(root: Path) -> list[str]:
         errors.append("SKILL.md: description must not contain angle-bracket markup")
     return errors
 
+
+
+def _parse_simple_yaml_sections(path: Path) -> tuple[dict[str, dict[str, str]], list[str]]:
+    sections: dict[str, dict[str, str]] = {}
+    errors: list[str] = []
+    current: str | None = None
+
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeError) as exc:
+        return {}, [f"{path}: cannot read file: {exc}"]
+
+    for number, raw in enumerate(lines, start=1):
+        if not raw.strip() or raw.lstrip().startswith("#"):
+            continue
+
+        if not raw.startswith(" "):
+            stripped = raw.strip()
+            if not stripped.endswith(":") or ":" in stripped[:-1]:
+                errors.append(f"{path}:{number}: unsupported top-level YAML entry")
+                current = None
+                continue
+            current = stripped[:-1].strip()
+            if not current:
+                errors.append(f"{path}:{number}: empty YAML section")
+                continue
+            sections.setdefault(current, {})
+            continue
+
+        if current is None or not raw.startswith("  ") or raw.startswith("   "):
+            errors.append(f"{path}:{number}: expected two-space nested YAML entry")
+            continue
+
+        stripped = raw.strip()
+        if ":" not in stripped:
+            errors.append(f"{path}:{number}: expected key: value")
+            continue
+
+        key, value = stripped.split(":", 1)
+        key = key.strip()
+        value = value.strip()
+        if not key or not value:
+            errors.append(f"{path}:{number}: key and value must be non-empty")
+            continue
+
+        if (
+            len(value) >= 2
+            and value[0] == value[-1]
+            and value[0] in {'"', "'"}
+        ):
+            value = value[1:-1]
+        sections[current][key] = value
+
+    return sections, errors
+
+
+def validate_openai_metadata(root: Path) -> list[str]:
+    path = root / "agents" / "openai.yaml"
+    sections, errors = _parse_simple_yaml_sections(path)
+    if errors:
+        return errors
+
+    interface = sections.get("interface")
+    if not interface:
+        return ["agents/openai.yaml: interface mapping is required"]
+
+    for key in ("display_name", "short_description", "default_prompt"):
+        value = interface.get(key, "")
+        if not value:
+            errors.append(f"agents/openai.yaml: interface.{key} is required")
+
+    policy = sections.get("policy", {})
+    implicit = policy.get("allow_implicit_invocation")
+    if implicit not in {"true", "false"}:
+        errors.append(
+            "agents/openai.yaml: policy.allow_implicit_invocation must be true or false"
+        )
+
+    return errors
 
 def validate_structure(root: Path) -> list[str]:
     return [
@@ -255,6 +335,8 @@ def validate_repository(root: Path = ROOT) -> list[str]:
         errors.extend(validate_frontmatter(root))
     if (root / "VERSION").exists():
         errors.extend(validate_version(root))
+    if (root / "agents" / "openai.yaml").exists():
+        errors.extend(validate_openai_metadata(root))
     if (root / "evals" / "cases.json").exists() and (root / "evals" / "schema.json").exists():
         errors.extend(validate_evals(root))
     errors.extend(validate_workflow_action_pins(root))
