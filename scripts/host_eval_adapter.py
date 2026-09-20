@@ -11,6 +11,31 @@ import sys
 import tempfile
 from pathlib import Path
 
+BASE_PROCESS_ENV = (
+    "LANG",
+    "LC_ALL",
+    "PATH",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "TMPDIR",
+    "WINDIR",
+)
+
+
+def _adapter_environment() -> dict[str, str]:
+    env = {
+        key: os.environ[key]
+        for key in BASE_PROCESS_ENV
+        if key in os.environ
+    }
+    forwarded = os.environ.get("EQ_EVAL_PASSED_ENV", "")
+    for name in forwarded.split(","):
+        name = name.strip()
+        if name and name in os.environ:
+            env[name] = os.environ[name]
+    return env
+
 
 def _required_env(name: str) -> str:
     value = os.environ.get(name)
@@ -86,7 +111,7 @@ def run_codex(
             skill_entry,
             home / ".agents" / "skills" / "engineering-quality",
         )
-        env = os.environ.copy()
+        env = _adapter_environment()
         env["HOME"] = str(home)
         env["CODEX_HOME"] = str(home / ".codex")
         Path(env["CODEX_HOME"]).mkdir(parents=True, exist_ok=True)
@@ -112,19 +137,28 @@ def run_claude_code(
     workspace: Path,
     skill_entry: Path,
 ) -> int:
-    env = os.environ.copy()
-    _print_version(executable, env, workspace)
-    try:
-        completed = subprocess.run(
-            claude_argv(executable, task, skill_entry.resolve().parent),
-            cwd=workspace,
-            env=env,
-            check=False,
-        )
-    except FileNotFoundError:
-        print(f"Claude Code executable not found: {executable}", file=sys.stderr)
-        return 127
-    return completed.returncode
+    with tempfile.TemporaryDirectory(
+        prefix="engineering-quality-claude-home-"
+    ) as directory:
+        home = Path(directory)
+        env = _adapter_environment()
+        env["HOME"] = str(home)
+        env["USERPROFILE"] = str(home)
+        env["CLAUDE_CONFIG_DIR"] = str(home / ".claude")
+        Path(env["CLAUDE_CONFIG_DIR"]).mkdir(parents=True, exist_ok=True)
+
+        _print_version(executable, env, workspace)
+        try:
+            completed = subprocess.run(
+                claude_argv(executable, task, skill_entry.resolve().parent),
+                cwd=workspace,
+                env=env,
+                check=False,
+            )
+        except FileNotFoundError:
+            print(f"Claude Code executable not found: {executable}", file=sys.stderr)
+            return 127
+        return completed.returncode
 
 
 def _parser() -> argparse.ArgumentParser:
