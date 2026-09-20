@@ -4,6 +4,11 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 1.2.1 - 2026-09-20
+
+- Fix missing-tag detection so GitHub CLI 404 response bodies cannot be misclassified as an existing tag SHA.
+- Keep privileged GitHub Release publication checkout-free by removing redundant local-Git tag verification after the workflow has already established the remote tag invariant.
+
 ## 1.2.0 - 2026-09-20
 
 - Repair the release trust chain and make GitHub Release publication safely rerunnable without moving published tags.
