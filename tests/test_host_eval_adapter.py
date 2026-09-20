@@ -41,6 +41,12 @@ class HostEvalAdapterTests(unittest.TestCase):
         self.assertIn("workspace-write", argv)
         self.assertEqual("fix the bug", argv[-1])
 
+    def test_codex_model_can_be_pinned(self) -> None:
+        argv = host_eval_adapter.codex_argv("codex", "fix", "gpt-test")
+
+        self.assertIn("--model", argv)
+        self.assertIn("gpt-test", argv)
+
     def test_claude_uses_bare_auto_mode_and_explicit_skill_directory(self) -> None:
         skill = Path("/tmp/staged-skill")
         argv = host_eval_adapter.claude_argv("claude", "fix the bug", skill)
@@ -57,10 +63,32 @@ class HostEvalAdapterTests(unittest.TestCase):
         self.assertIn("-p", argv)
         self.assertEqual("fix the bug", argv[-1])
 
+    def test_claude_model_can_be_pinned(self) -> None:
+        argv = host_eval_adapter.claude_argv(
+            "claude", "fix", Path("/tmp/staged-skill"), "claude-test"
+        )
+
+        self.assertIn("--model", argv)
+        self.assertIn("claude-test", argv)
+
     def test_copy_skill_preserves_runtime_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            target = Path(directory) / "skill"
-            entry = host_eval_adapter._copy_skill(ROOT / "SKILL.md", target)
+            root = Path(directory)
+            source = root / "source"
+            target = root / "target"
+            (source / "agents").mkdir(parents=True)
+            (source / "references").mkdir(parents=True)
+            (source / "SKILL.md").write_text("# Skill\n", encoding="utf-8")
+            (source / "agents" / "openai.yaml").write_text(
+                "interface:\n  display_name: test\n",
+                encoding="utf-8",
+            )
+            (source / "references" / "verification.md").write_text(
+                "# Verification\n",
+                encoding="utf-8",
+            )
+
+            entry = host_eval_adapter._copy_skill(source / "SKILL.md", target)
 
             self.assertTrue(entry.is_file())
             self.assertTrue((target / "agents" / "openai.yaml").is_file())
