@@ -21,6 +21,8 @@ REQUIRED_PATHS = (
     "SKILL.md",
     "VERSION",
     "CHANGELOG.md",
+    "assets/mascot/evi.jpg",
+    "assets/mascot/evi-identity-system.jpg",
     "CODE_OF_CONDUCT.md",
     "CONTRIBUTING.md",
     "GOVERNANCE.md",
