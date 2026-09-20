@@ -50,20 +50,32 @@ def _copy_skill(source_entry: Path, target: Path) -> Path:
     return target / "SKILL.md"
 
 
-def codex_argv(executable: str, task: str) -> list[str]:
-    return [
+def codex_argv(
+    executable: str,
+    task: str,
+    model: str | None = None,
+) -> list[str]:
+    argv = [
         executable,
         "exec",
         "--ephemeral",
         "--ignore-user-config",
         "--sandbox",
         "workspace-write",
-        task,
     ]
+    if model:
+        argv.extend(("--model", model))
+    argv.append(task)
+    return argv
 
 
-def claude_argv(executable: str, task: str, skill_dir: Path) -> list[str]:
-    return [
+def claude_argv(
+    executable: str,
+    task: str,
+    skill_dir: Path,
+    model: str | None = None,
+) -> list[str]:
+    argv = [
         executable,
         "--bare",
         "--permission-mode",
@@ -73,9 +85,11 @@ def claude_argv(executable: str, task: str, skill_dir: Path) -> list[str]:
         "--no-session-persistence",
         "--add-dir",
         str(skill_dir),
-        "-p",
-        task,
     ]
+    if model:
+        argv.extend(("--model", model))
+    argv.extend(("-p", task))
+    return argv
 
 
 def _print_version(executable: str, env: dict[str, str], cwd: Path) -> None:
@@ -104,6 +118,7 @@ def run_codex(
     task: str,
     workspace: Path,
     skill_entry: Path,
+    model: str | None = None,
 ) -> int:
     with tempfile.TemporaryDirectory(prefix="engineering-quality-codex-home-") as directory:
         home = Path(directory)
@@ -119,7 +134,7 @@ def run_codex(
         _print_version(executable, env, workspace)
         try:
             completed = subprocess.run(
-                codex_argv(executable, task),
+                codex_argv(executable, task, model),
                 cwd=workspace,
                 env=env,
                 check=False,
@@ -136,6 +151,7 @@ def run_claude_code(
     task: str,
     workspace: Path,
     skill_entry: Path,
+    model: str | None = None,
 ) -> int:
     with tempfile.TemporaryDirectory(
         prefix="engineering-quality-claude-home-"
@@ -150,7 +166,7 @@ def run_claude_code(
         _print_version(executable, env, workspace)
         try:
             completed = subprocess.run(
-                claude_argv(executable, task, skill_entry.resolve().parent),
+                claude_argv(executable, task, skill_entry.resolve().parent, model),
                 cwd=workspace,
                 env=env,
                 check=False,
@@ -169,6 +185,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--executable",
         help="override the host executable for controlled testing",
+    )
+    parser.add_argument(
+        "--model",
+        help="pin an explicit host model for reproducible behavioral evidence",
     )
     return parser
 
@@ -191,6 +211,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"staged skill entry is not a file: {skill_entry}", file=sys.stderr)
         return 2
 
+    if args.model:
+        print(f"[host-adapter] model={args.model}", file=sys.stderr)
+
     if args.host == "codex":
         executable = args.executable or os.environ.get("EQ_CODEX_BIN", "codex")
         return run_codex(
@@ -198,6 +221,7 @@ def main(argv: list[str] | None = None) -> int:
             task=task,
             workspace=workspace,
             skill_entry=skill_entry,
+            model=args.model,
         )
 
     executable = args.executable or os.environ.get("EQ_CLAUDE_BIN", "claude")
@@ -206,6 +230,7 @@ def main(argv: list[str] | None = None) -> int:
         task=task,
         workspace=workspace,
         skill_entry=skill_entry,
+        model=args.model,
     )
 
 
