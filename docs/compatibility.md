@@ -176,7 +176,9 @@ claude --bare --permission-mode auto --permission-prompts none \
 
 `--bare` suppresses unrelated local hooks, commands, agents, plugins, MCP configuration, memory, and CLAUDE.md loading while Claude Code still permits Skills from an explicit `--add-dir`. Auto mode remains a safety decision layer; a denied action can terminate a headless run rather than being silently bypassed.
 
-The adapters print the installed host CLI version into captured stderr so a real evaluation result retains version evidence.
+Claude Code's current non-interactive mode accepts environment authentication such as `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, or `CLAUDE_CODE_OAUTH_TOKEN`. Other provider-specific variables can be forwarded individually when required. The adapter creates an isolated temporary `HOME` and `CLAUDE_CONFIG_DIR`, so a behavioral run does not silently consume the evaluator's ordinary saved Claude login or personal configuration.
+
+The adapters print the installed host CLI version into captured stderr so a real evaluation result retains version evidence. The runner never forwards unrelated host secrets by default.
 
 ## Evaluation integrity
 
