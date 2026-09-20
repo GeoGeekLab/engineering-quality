@@ -70,7 +70,7 @@ The workflow separates construction from publication:
 3. creates and checksum-verifies the distribution archive,
 4. generates release notes and stages the release payload,
 5. a separate publish job downloads and re-verifies that payload,
-6. generates signed SLSA build-provenance attestations for the ZIP and checksum,
+6. uses GitHub's `actions/attest` action to generate signed SLSA build provenance for the ZIP and checksum,
 7. verifies the ZIP attestation with GitHub CLI,
 8. creates the GitHub Release when it does not exist, or reconciles an existing Release,
 9. publishes or replaces the ZIP and SHA-256 checksum for that immutable tag.
@@ -79,9 +79,11 @@ Release publication is intentionally rerunnable. If the GitHub Release object al
 
 ## Supply-chain controls
 
-GitHub Actions dependencies are pinned to complete commit SHAs rather than mutable version tags. A repository validation check rejects non-SHA action references. Human-readable version comments remain next to the pins, and Dependabot is configured to propose GitHub Actions updates.
+GitHub Actions dependencies are pinned to complete commit SHAs rather than mutable version tags. A repository validation check rejects non-SHA action references. Human-readable exact-version comments remain next to the pins, and Dependabot is configured to propose GitHub Actions updates.
 
-The build job has read-only repository access. Release write access and the OIDC token needed for provenance signing are granted only to the publish job. Jobs also use explicit timeouts, and workflow concurrency prevents stale CI runs or overlapping publication for the same ref.
+CI exercises the artifact transport path, not just its configuration: after building and verifying the package, it uploads the distribution, removes the local copy, downloads the workflow artifact again, and re-verifies the SHA-256 sidecar. This catches artifact upload/download regressions before release.
+
+The release build job has read-only repository access. Release write access, attestation storage permission, artifact metadata permission, and the OIDC token needed for Sigstore-backed provenance signing are granted only to the publish job. Jobs also use explicit timeouts, and workflow concurrency prevents stale CI runs or overlapping publication for the same ref.
 
 Release artifacts carry two complementary integrity mechanisms:
 
