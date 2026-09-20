@@ -41,6 +41,35 @@ class ValidateSkillTests(unittest.TestCase):
             self.assertEqual(1, len(errors))
             self.assertIn("broken local link", errors[0])
 
+    def test_workflow_actions_require_full_commit_sha(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            workflows = root / ".github" / "workflows"
+            workflows.mkdir(parents=True)
+            (workflows / "ci.yml").write_text(
+                "steps:\n  - uses: actions/checkout@v7\n",
+                encoding="utf-8",
+            )
+
+            errors = validate_skill.validate_workflow_action_pins(root)
+
+            self.assertEqual(1, len(errors))
+            self.assertIn("full commit SHA", errors[0])
+
+    def test_workflow_accepts_sha_pins_and_local_actions(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            workflows = root / ".github" / "workflows"
+            workflows.mkdir(parents=True)
+            (workflows / "ci.yml").write_text(
+                "steps:\n"
+                "  - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n"
+                "  - uses: ./github/actions/local\n",
+                encoding="utf-8",
+            )
+
+            self.assertEqual([], validate_skill.validate_workflow_action_pins(root))
+
 
 if __name__ == "__main__":
     unittest.main()
