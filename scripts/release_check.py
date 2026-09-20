@@ -43,6 +43,7 @@ def validate_release_workflow(text: str) -> list[str]:
         ("release tag creation", "git/refs"),
         ("artifact provenance", "actions/attest@"),
         ("provenance verification", "gh attestation verify"),
+        ("release trigger branch cleanup", "git/refs/heads/${GITHUB_REF_NAME}"),
     )
     for label, marker in rerun_requirements:
         if marker not in text:
