@@ -71,6 +71,27 @@ class ValidateSkillTests(unittest.TestCase):
             self.assertEqual([], validate_skill.validate_workflow_action_pins(root))
 
 
+    def test_claude_plugin_version_must_match_version_file(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "VERSION").write_text("1.2.3\n", encoding="utf-8")
+            manifest = root / ".claude-plugin" / "plugin.json"
+            manifest.parent.mkdir(parents=True)
+            manifest.write_text(
+                '{'
+                '"name":"engineering-quality",'
+                '"description":"Quality workflows",'
+                '"version":"9.9.9",'
+                '"repository":"https://github.com/GeoGeekLab/engineering-quality",'
+                '"license":"MIT"'
+                '}',
+                encoding="utf-8",
+            )
+
+            errors = validate_skill.validate_claude_plugin(root)
+
+            self.assertTrue(any("does not match VERSION" in error for error in errors))
+
     def test_openai_metadata_requires_interface_fields(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
