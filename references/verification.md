@@ -19,6 +19,21 @@ Static inspection supports a conclusion but does not substitute for an executabl
 
 Look for contributor documentation, make targets, package scripts, task-runner configuration, language build files, continuous-integration workflows, and test configuration.
 
+Discovery is not execution. A target or script named `test`, `check`, `lint`, or `verify` can still execute arbitrary repository-controlled code.
+
+## Trust before execution
+
+Before running repository-defined verification, establish whether the repository is trusted for code execution. Build tools, package scripts, test frameworks, wrappers, plugins, compiler hooks, and generated launchers can read inherited environment variables, access files and network resources, spawn processes, and cause side effects.
+
+If repository trust is not established:
+
+- inspect candidate commands without running them,
+- do not expose credentials or sensitive environment variables,
+- use an appropriately isolated environment when execution is necessary,
+- restrict network and filesystem access according to the task and threat model.
+
+The `project_checks.py` helper therefore requires `--run --trust-repository` for execution. The trust flag is an acknowledgement of an established trust decision; it does not make the repository safe.
+
 ## Narrow before broad
 
 Run the fastest focused check that can fail for the behavior being changed, then broaden verification.
