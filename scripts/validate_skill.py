@@ -50,6 +50,7 @@ REQUIRED_PATHS = (
     "evals/README.md",
     "docs/compatibility.md",
     "docs/github-settings.md",
+    "docs/mascot.md",
     "docs/distribution.md",
     "docs/release.md",
     "scripts/project_checks.py",
