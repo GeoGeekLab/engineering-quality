@@ -632,6 +632,7 @@ def build_report(
     *,
     adapter_label: str,
     allow_workspace_execution: bool,
+    forwarded_environment: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     statuses = [result["status"] for result in results]
     if "failed" in statuses:
@@ -653,6 +654,7 @@ def build_report(
             "qualitative_rubric": "not automatically judged",
         },
         "adapter": adapter_label,
+        "forwarded_environment": sorted(set(forwarded_environment)),
         "cases": results,
     }
 
@@ -799,6 +801,7 @@ def main(argv: list[str] | None = None) -> int:
         results,
         adapter_label=args.adapter_label,
         allow_workspace_execution=args.allow_workspace_execution,
+        forwarded_environment=tuple(args.pass_env),
     )
 
     rendered = json.dumps(report, indent=2, sort_keys=True)
