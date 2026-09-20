@@ -73,6 +73,13 @@ class ReleaseCheckTests(unittest.TestCase):
             workflow,
         )
 
+    def test_release_create_does_not_require_local_git_checkout(self) -> None:
+        workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn("--verify-tag", workflow)
+        self.assertIn("Create release tag from protected main", workflow)
+
     def test_release_notes_extract_current_version(self) -> None:
         version = release_check.read_version(ROOT)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
