@@ -97,8 +97,8 @@ class ReleaseCheckTests(unittest.TestCase):
         version = release_check.read_version(ROOT)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         notes = release_notes.extract_release_notes(changelog, version)
-        self.assertIn("explicit repository context", notes)
-        self.assertNotIn("## 1.2.1", notes)
+        self.assertIn("automatic cleanup", notes)
+        self.assertNotIn("## 1.2.2", notes)
 
 
 if __name__ == "__main__":
