@@ -188,6 +188,32 @@ class EvalRunnerTests(unittest.TestCase):
         self.assertEqual("failed", integrity["status"])
         self.assertIn("SKILL.md", integrity["changed_files"])
 
+    def test_report_records_only_forwarded_environment_names(self) -> None:
+        report = run_evals.build_report(
+            [],
+            adapter_label="example-agent",
+            allow_workspace_execution=False,
+            forwarded_environment=("CODEX_API_KEY", "CODEX_API_KEY", "CUSTOM_PROVIDER"),
+        )
+
+        self.assertEqual(
+            ["CODEX_API_KEY", "CUSTOM_PROVIDER"],
+            report["forwarded_environment"],
+        )
+
+    def test_cli_rejects_requested_environment_that_is_not_set(self) -> None:
+        with mock.patch.dict(os.environ, {}, clear=True):
+            with self.assertRaises(SystemExit) as raised:
+                run_evals.main(
+                    [
+                        "--validate-only",
+                        "--pass-env",
+                        "MISSING_CREDENTIAL",
+                    ]
+                )
+
+        self.assertEqual(2, raised.exception.code)
+
     def test_report_does_not_claim_qualitative_rubric_was_judged(self) -> None:
         result = {
             "id": "sample-case",
