@@ -2,7 +2,9 @@
 
 # engineering-quality
 
-**Ship patches you can defend.**
+**Evidence-first engineering quality for coding agents.**
+
+A portable Agent Skill for **Codex, Claude Code, ChatGPT, and other coding agents** that makes implementation, code review, testing, debugging, refactoring, compatibility, and security work more disciplined and verifiable.
 
 `read the repo → model the contract → patch narrowly → try to break it → inspect the diff → show the evidence`
 
@@ -10,284 +12,254 @@
 [![Release](https://img.shields.io/github/v/release/GeoGeekLab/engineering-quality?style=flat-square)](https://github.com/GeoGeekLab/engineering-quality/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f?style=flat-square)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.12%20%7C%203.14-3776AB?style=flat-square&logo=python&logoColor=white)](.github/workflows/ci.yml)
-[![Codex](https://img.shields.io/badge/Codex-skill-111111?style=flat-square&logo=openai&logoColor=white)](#codex)
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-skill%20%2B%20plugin-D97757?style=flat-square&logo=anthropic&logoColor=white)](#claude-code)
-[![ChatGPT](https://img.shields.io/badge/ChatGPT-uploadable%20skill-10A37F?style=flat-square&logo=openai&logoColor=white)](#chatgpt)
 
-A portable engineering playbook for coding agents and humans who want changes that are correct, local, reviewable, and provable.
+**Less taste. More invariants.**
 
 </div>
 
-<p align="center">
-  <img src="docs/assets/architecture.svg" alt="engineering-quality technical architecture" width="100%">
-</p>
+## Why this exists
 
-## The idea
+Coding agents are very good at producing plausible patches. Plausible is not the same as correct.
 
-Code can compile and still be wrong.
+A patch can compile and still violate a public contract. Tests can pass while missing the failure mode. A refactor can be elegant while quietly widening scope. A verification command can itself execute untrusted repository code.
 
-Tests can pass and still miss the contract.
-
-A diff can look clean and still break compatibility, leak data, race under load, or quietly widen scope.
-
-So this project treats engineering quality less like taste and more like a protocol:
+engineering-quality gives coding agents a compact engineering protocol:
 
 ```text
-observe
-  ↓
-infer the local contract
-  ↓
-change the smallest coherent surface
-  ↓
-attack the change with the right checks
-  ↓
-read the diff like a reviewer
-  ↓
-separate proof from belief
+RECON → CONTRACT → CHANGE → VERIFY → REVIEW → EVIDENCE
 ```
 
-The core rules are intentionally boring:
+The goal is not more process. The goal is a patch you can defend.
 
-- correctness beats elegance;
-- repository-local conventions beat generic taste;
-- public behavior is a contract until proven otherwise;
-- tests should encode behavior, not implementation trivia;
-- security, compatibility, concurrency, and operability count as correctness;
-- machines should check what machines can check;
-- "looks good" is not evidence.
+## Quick start
 
-Function length, coverage, complexity, and diff size are signals. They are not commandments.
-
-> **Less taste. More invariants.**
-
-## Install
-
-Host instructions below were last checked against official vendor documentation on **2026-09-20**. See [docs/compatibility.md](docs/compatibility.md) for evidence levels and source links.
+Host instructions were last checked against official vendor documentation on **2026-09-20**. See [host compatibility](docs/compatibility.md) for exact evidence levels.
 
 ### Codex
 
-For local setup or experimentation, use the built-in skill installer:
+For local setup or experimentation:
 
 ```text
 $skill-installer Install engineering-quality from https://github.com/GeoGeekLab/engineering-quality
 ```
 
-Or install the skill manually for the current user:
+Manual user install:
 
 ```bash
 git clone https://github.com/GeoGeekLab/engineering-quality.git \
   ~/.agents/skills/engineering-quality
 ```
 
-OpenAI currently recommends **Plugins** for reusable skill distribution. This repository includes packaged `agents/openai.yaml` metadata, but engineering-quality is not currently claiming publication or OpenAI Verified status in the Plugin Directory.
-
 ### Claude Code
 
-Anthropic supports standalone Skills under `~/.claude/skills`:
+Standalone Skill:
 
 ```bash
 git clone https://github.com/GeoGeekLab/engineering-quality.git \
   ~/.claude/skills/engineering-quality
 ```
 
-The repository is also a native single-skill Claude Code plugin through `.claude-plugin/plugin.json`. A development checkout can be loaded directly:
+Or load the repository as a native single-skill plugin during development:
 
 ```bash
 claude --plugin-dir /path/to/engineering-quality
 ```
 
-The project is not currently claiming publication in a Claude plugin marketplace.
-
 ### ChatGPT
 
-For eligible ChatGPT **Business, Enterprise, Healthcare, and Edu** workspaces, use the packaged ZIP attached to the latest GitHub Release:
+On eligible ChatGPT Business, Enterprise, Healthcare, and Edu workspaces:
 
-**[Open the latest release](https://github.com/GeoGeekLab/engineering-quality/releases/latest)**
+1. open the [latest GitHub Release](https://github.com/GeoGeekLab/engineering-quality/releases/latest),
+2. download `engineering-quality-<version>.zip`,
+3. in ChatGPT open **Plugins → Skills → Create → Upload from your computer**,
+4. upload the ZIP.
 
-In ChatGPT, open **Plugins → Skills → Create → Upload from your computer**, then upload:
+### Optional cross-agent installer
 
-```text
-engineering-quality-<version>.zip
-```
-
-For a development checkout, build the same runtime package locally:
-
-```bash
-make package
-```
-
-Availability remains subject to workspace settings and current product rollout. Broader reusable discovery across ChatGPT and Codex uses OpenAI Plugins; this project has not yet been submitted or published there.
-
-### Optional cross-agent CLI
-
-The third-party `skills` CLI can still be convenient:
+The third-party Vercel Labs CLI is available as a convenience:
 
 ```bash
 npx -y skills@1.7.0 add GeoGeekLab/engineering-quality
 ```
 
-It is documented as a convenience rather than the vendor-native authority for OpenAI or Anthropic installation.
+It is not treated as the vendor-native distribution authority for OpenAI or Anthropic.
 
-Platform references: [OpenAI Skills](https://developers.openai.com/docs/build-skills) · [OpenAI Plugins](https://help.openai.com/en/articles/20001256/) · [ChatGPT Skills](https://help.openai.com/en/articles/20001066) · [Claude Skills](https://www.anthropic.com/research/skills) · [Claude Code plugins](https://code.claude.com/docs/en/plugins)
+## What changes when an agent uses it
 
-## Runtime
+Without an explicit engineering contract, a coding-agent answer can look like:
+
+> Fixed the parser, cleaned up nearby helpers, and the tests look good.
+
+engineering-quality pushes toward something more auditable:
+
+> Contract: comma-delimited input remains valid; semicolon-delimited input must fail.  
+> Scope: changed the parser and its regression test only; unrelated utility code was left untouched.  
+> Verified: the focused regression test and repository checks passed.  
+> Not verified: no production traffic replay was available.
+
+That difference is the project.
+
+It does not prescribe one architecture, testing framework, or coding style. It asks the agent to identify the repository's actual contract, make the smallest coherent change, attack that change with relevant checks, inspect the resulting diff, and state exactly what the evidence proves.
+
+## Core guarantees
+
+The Skill is built around a few priorities:
+
+- **Correctness before aesthetics.** A beautiful implementation of the wrong behavior is still wrong.
+- **Repository-local contract before generic taste.** Existing architecture, compatibility, error semantics, and tooling are evidence.
+- **Small coherent changes.** Required tests, migrations, and docs belong in the patch; drive-by cleanup does not.
+- **Security is part of correctness.** Trust boundaries, credentials, command execution, and unsafe defaults are first-class review concerns.
+- **Compatibility is observable behavior.** Public APIs, schemas, CLI behavior, persistence, and deployment overlap are contracts until proven otherwise.
+- **Evidence before confidence.** `Verified`, `Reasoned`, and `Not verified` mean different things.
+
+## Evidence, not badges
+
+This repository tries to make its own quality claims inspectable.
+
+### Repository and package evidence
+
+`make check` validates:
 
 ```text
-RECON → CONTRACT → CHANGE → VERIFY → REVIEW → EVIDENCE
+repository integrity
+  ├── Skill + host metadata
+  ├── local links + governance contract
+  ├── immutable GitHub Action pins
+  ├── VERSION + CHANGELOG consistency
+  ├── executable behavioral-eval fixtures
+  ├── Python compilation + unit tests
+  ├── deterministic package verification
+  └── release-readiness invariants
 ```
 
-Think of it as a tiny engineering VM:
+CI runs the contract on Python **3.10**, **3.12**, and **3.14**.
 
-| Stage | What it does |
-| --- | --- |
-| **RECON** | Read before writing. Discover architecture, conventions, checks, ownership, and sharp edges. |
-| **CONTRACT** | Define what must change, what must not change, and what would prove success. |
-| **CHANGE** | Make the smallest coherent patch that satisfies the contract. |
-| **VERIFY** | Try to falsify the patch with focused tests, static checks, builds, and risk-specific probes. |
-| **REVIEW** | Inspect the diff for correctness, compatibility, security, concurrency, maintainability, and accidental scope. |
-| **EVIDENCE** | Report what was executed, what was only reasoned about, and what remains unverified. |
-
-No "done" until the evidence matches the claim.
-
-## Repository map
+The package job performs a real artifact round trip:
 
 ```text
-engineering-quality/
-├── SKILL.md                     # bootloader: invariants + routing
-├── agents/
-│   └── openai.yaml              # OpenAI skill UI + invocation metadata
-├── .claude-plugin/
-│   └── plugin.json              # Claude Code single-skill plugin metadata
-├── VERSION                      # canonical release version
-├── workflows/
-│   ├── feature.md               # add behavior
-│   ├── bug-fix.md               # restore behavior
-│   ├── refactor.md              # move code without moving the contract
-│   ├── review.md                # hunt failure modes
-│   ├── debug.md                 # reduce uncertainty
-│   └── performance.md           # measure before mythology
-├── references/
-│   ├── principles.md
-│   ├── change-discipline.md
-│   ├── verification.md
-│   ├── testing.md
-│   ├── security.md
-│   ├── api-compatibility.md
-│   ├── performance-concurrency.md
-│   └── language-profiles.md
-├── scripts/
-│   ├── project_checks.py
-│   ├── host_eval_adapter.py
-│   ├── validate_skill.py
-│   ├── package_skill.py
-│   ├── release_check.py
-│   └── release_notes.py
-├── tests/
-├── evals/
-│   ├── cases.json
-│   ├── schema.json
-│   ├── result-schema.json
-│   └── README.md
-├── docs/
-│   ├── compatibility.md
-│   ├── foundations.md
-│   ├── release.md
-│   └── assets/
-│       └── architecture.svg
-└── .github/workflows/
-    ├── ci.yml
-    └── release.yml
+build → SHA-256 → upload → delete local copy → download → SHA-256
 ```
 
-### Progressive loading
+### Release integrity
 
-`SKILL.md` is the bootloader, not the encyclopedia.
+Tagged releases publish:
 
-It loads the invariant set first—correctness, scoped changes, local conventions, verification, diff review—then routes into the narrowest workflow and reference set needed for the task.
+```text
+engineering-quality-<version>.zip
+engineering-quality-<version>.zip.sha256
+```
 
-Security guidance appears when trust boundaries matter. Compatibility guidance appears when public contracts move. Performance and concurrency guidance stay out of the context until they are actually relevant.
+The ZIP also contains an internal `MANIFEST.sha256`.
 
-Small context. Deep branches.
-
-## Tools, not vibes
-
-### Discover project checks
-
-Inspect a repository and print conservative quality commands without running them:
+Verify a downloaded archive:
 
 ```bash
-python scripts/project_checks.py /path/to/repository
+sha256sum -c engineering-quality-<version>.zip.sha256
+
+gh attestation verify engineering-quality-<version>.zip \
+  --repo GeoGeekLab/engineering-quality
 ```
 
-Discovery is read-only: the helper prints candidate commands and does not execute them or install dependencies.
+Release artifacts are attested in GitHub Actions before publication. See [release engineering](docs/release.md).
 
-Command names such as `test`, `check`, or `lint` are not a security boundary. Make targets, package scripts, test runners, build tools, wrappers, plugins, and compiler hooks may execute arbitrary repository-controlled code.
+### Behavioral evaluations
 
-Only after you have established trust in the repository, execution requires both flags:
+The repository contains **14 executable miniature-repository scenarios** covering defect fixes, compatibility changes, security boundaries, concurrency, dependency pressure, flaky tests, migrations, generated code, swallowed errors, and scope expansion.
 
-```bash
-python scripts/project_checks.py /path/to/repository --run --trust-repository
-```
-
-The explicit trust flag is intentional. Running checks can access inherited environment variables, local files, and network resources and can cause side effects.
-
-The helper recognizes common project signals across Python, JavaScript/TypeScript, Go, Rust, JVM projects, .NET, Swift, Dart/Flutter, Make-based projects, and repository-defined scripts.
-
-### Run behavioral evaluations
-
-The repository includes 14 executable miniature-repository scenarios and a host-neutral agent adapter runner:
+Validate the harness:
 
 ```bash
 python scripts/run_evals.py --validate-only
 ```
 
-A real behavioral run requires an external coding-agent adapter. The runner records the agent transcript and diff, then evaluates deterministic invariants such as tests, compatibility behavior, generated-code consistency, repeated flaky-test checks, and change scope.
+Run a real host through the adapter layer when credentials and the native CLI are available. See [behavioral evaluations](evals/README.md).
 
-CI validates the harness and fixtures; it does **not** claim that a real model passed the suite. See [evals/README.md](evals/README.md) for the evidence model and execution boundary.
+The evidence boundary is deliberate: CI proves that the harness and deterministic checks work. It does **not** claim that a real Codex, Claude Code, ChatGPT, or other model passed the suite unless an actual host run produced that evidence.
 
-### Validate this repository
+## How it works
 
-Requires Python 3.10 or newer.
+| Stage | Agent behavior |
+| --- | --- |
+| **RECON** | Read architecture, conventions, ownership, checks, and sharp edges before editing. |
+| **CONTRACT** | State what must change, what must remain stable, and what would prove success. |
+| **CHANGE** | Modify the smallest coherent surface that satisfies the contract. |
+| **VERIFY** | Try to falsify the patch with focused tests, static checks, builds, and risk-specific probes. |
+| **REVIEW** | Inspect the complete diff for correctness, compatibility, security, concurrency, maintainability, and accidental scope. |
+| **EVIDENCE** | Separate executed proof from inspection-based reasoning and unverified claims. |
 
-```bash
-make check
-```
+`SKILL.md` is intentionally a bootloader rather than an encyclopedia. It loads the invariant set first, then routes into focused workflows and references only when needed.
 
-The validation pipeline treats the repository itself as an executable contract:
+## Tools included
 
-```text
-repository integrity
-  ├── skill metadata + local links
-  ├── VERSION + CHANGELOG consistency
-  ├── executable eval fixtures + schemas
-  ├── eval harness contract
-  ├── Python compilation
-  ├── unit tests
-  ├── deterministic package verification
-  └── release-readiness invariants
-```
-
-CI runs that contract across Python **3.10**, **3.12**, and **3.14**, then builds and verifies the distribution artifact.
-
-### Build the artifact
+### Discover repository checks safely
 
 ```bash
-make package
+python scripts/project_checks.py /path/to/repository
 ```
 
-Produces:
+Discovery does not execute the commands it finds.
+
+A target named `test`, `lint`, or `check` is not automatically safe: Make recipes, package scripts, test discovery, wrappers, compiler hooks, and plugins can execute arbitrary repository-controlled code.
+
+Execution therefore requires an explicit trust decision:
+
+```bash
+python scripts/project_checks.py /path/to/repository \
+  --run --trust-repository
+```
+
+### Run behavioral evals
+
+Generic adapter:
+
+```bash
+python scripts/run_evals.py \
+  --agent-command 'my-agent --prompt {task}' \
+  --adapter-label my-agent \
+  --allow-workspace-execution \
+  --output eval-results/my-agent.json
+```
+
+Native Codex and Claude Code adapter examples are documented in [evals/README.md](evals/README.md).
+
+The runner uses fresh miniature Git repositories, hides the evaluation rubric from the agent, checks that the staged Skill was not mutated, and only forwards environment variables explicitly selected by the evaluator.
+
+## Where it helps most
+
+engineering-quality is designed for tasks where a plausible edit is not enough:
+
+- feature implementation with an existing contract,
+- bug fixes that need regression evidence,
+- behavior-preserving refactors,
+- code review focused on concrete failure modes,
+- debugging under incomplete evidence,
+- API/schema/migration compatibility,
+- security-sensitive boundaries,
+- concurrency and performance changes,
+- generated-code workflows,
+- coding-agent evaluation and verification.
+
+It is not a linter, formatter, static analyzer, or replacement for the repository's own tests. It composes with those tools.
+
+## Review protocol
+
+Findings are classified by impact rather than taste:
+
+| Severity | Meaning |
+| --- | --- |
+| **Blocker** | Incorrect behavior, data loss, security exposure, broken contract, or reliably failing verification. |
+| **Major** | Material failure under realistic conditions or significant maintenance/operational risk. |
+| **Minor** | Bounded clarity, resilience, test-quality, or consistency issue. |
+| **Note** | Optional improvement, question, or follow-up. |
+
+A useful review finding should answer:
 
 ```text
-dist/
-├── engineering-quality-<version>.zip
-└── engineering-quality-<version>.zip.sha256
+what can fail?
+under what condition?
+why does this diff make that possible?
+what evidence would close the finding?
 ```
-
-The ZIP contains only the runtime skill payload plus an internal `MANIFEST.sha256`.
-
-Tests, CI configuration, README content, and release tooling stay outside the runtime artifact on purpose.
-
-Tagged releases are automated. See [docs/release.md](docs/release.md).
 
 ## Quality model
 
@@ -310,130 +282,45 @@ quality =
   - unnecessary churn
 ```
 
-It is not a score. It is an ordering of concerns.
+This is an ordering of concerns, not a numeric score.
 
-### Correctness > aesthetics
-
-A beautiful implementation of the wrong behavior is still a bug.
-
-### Coherent diff > ambitious cleanup
-
-A patch should have one understandable reason to exist.
-
-Tests, migrations, and documentation required by that reason belong in the patch. Drive-by cleanup does not.
-
-### Local architecture > imported doctrine
-
-The repository already has a language: naming, error semantics, abstractions, test shape, tooling, and release conventions.
-
-Read it before teaching it a new accent.
-
-### Evidence > confidence
+## Repository structure
 
 ```text
-Verified     = executed and observed
-Reasoned     = supported by inspection
-Not verified = relevant check not run, with a concrete reason
+SKILL.md                    portable behavioral contract
+agents/openai.yaml          OpenAI Skill metadata
+.claude-plugin/plugin.json  Claude Code plugin metadata
+workflows/                  feature / bug-fix / refactor / review / debug / performance
+references/                 verification / testing / security / compatibility / concurrency
+scripts/                    validation / packaging / project checks / eval adapters
+evals/                      executable behavioral fixtures + result schema
+docs/                       compatibility / release / governance / distribution
+.github/                    CI / release / issue forms / CODEOWNERS
 ```
 
-Reasoning matters. Execution evidence matters more.
+The release ZIP intentionally contains the runtime Skill payload rather than repository-maintenance files.
 
-### Smells are interrupts, not exceptions
+## Project status and trust boundaries
 
-Long functions, duplicated code, broad diffs, low coverage, and high complexity should make you look closer.
+- Host installation guidance was last verified on **2026-09-20**.
+- GitHub Actions dependencies are pinned to immutable commit SHAs and maintained by Dependabot.
+- `main` and `v*.*.*` are protected by active GitHub rulesets.
+- Releases use SHA-256 checksums and GitHub artifact attestations.
+- Repository-defined checks execute only after explicit repository trust.
+- Behavioral-eval reports distinguish deterministic evidence from qualitative rubric review.
+- OpenAI Plugin Directory and Claude marketplace publication are **not** claimed until those external review/publication steps actually happen.
 
-They do not automatically make the code wrong.
-
-The useful question is not "which rule was violated?"
-
-It is:
-
-```text
-what failure mode is hiding here?
-```
-
-Coupling? Obscured invariants? Unsafe boundaries? Compatibility debt? Unverifiable behavior? Operational surprise?
-
-Find the bug behind the smell.
-
-## Review protocol
-
-Review is not a style referendum.
-
-Findings are classified by concrete impact:
-
-| Severity | Meaning |
-| --- | --- |
-| **Blocker** | Incorrect behavior, data loss, security exposure, broken contract, or reliably failing verification. |
-| **Major** | A material problem likely under realistic conditions or a significant maintenance/operational risk. |
-| **Minor** | A bounded issue affecting clarity, resilience, test quality, or consistency. |
-| **Note** | Optional improvement, question, or follow-up. |
-
-A useful review comment should be able to answer:
-
-```text
-what can fail?
-under what condition?
-why does this diff make that possible?
-what evidence would close the finding?
-```
-
-Style disagreement alone has no severity.
-
-## Failure modes this tries to kill
-
-```text
-"the tests passed, so we're done"
-"while I'm here, I'll clean up these 14 files"
-"this abstraction is more elegant"
-"coverage went up"
-"the linter is green"
-"works on my machine"
-"probably backward compatible"
-"should be thread-safe"
-"looks good"
-```
-
-None of those statements is useless.
-
-None of them is sufficient evidence by itself.
-
-## Design foundations
-
-The playbook borrows from established engineering practice without turning any one source into scripture:
-
-- [Google Engineering Practices](https://google.github.io/eng-practices/) — reviewability, small coherent changes, and codebase health.
-- [Martin Fowler](https://refactoring.com/) — refactoring, code smells, testing, and evolutionary design.
-- [A Philosophy of Software Design](https://web.stanford.edu/~ouster/cgi-bin/aposd.php) — complexity, information hiding, and deep modules.
-- [OWASP ASVS](https://owasp.org/projects/asvs/) and [NIST SSDF](https://csrc.nist.gov/Projects/ssdf) — structured security requirements and secure development practice.
-- [Hyrum's Law](https://www.hyrumslaw.com/) and [Semantic Versioning](https://semver.org/) — observable behavior and compatibility.
-- Official ecosystem guidance including [PEP 8](https://peps.python.org/pep-0008/), [Go Code Review Comments](https://go.dev/wiki/CodeReviewComments), and the [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/).
-
-See [docs/foundations.md](docs/foundations.md) for the maintained source map.
+See [compatibility](docs/compatibility.md), [release engineering](docs/release.md), [governance](GOVERNANCE.md), [security](SECURITY.md), and [distribution](docs/distribution.md).
 
 ## Contributing
 
-Do not add rules because they sound professional.
+Contributions should address a concrete failure mode or maintenance benefit, not merely introduce a preferred style.
 
-Add them because they kill a real failure mode.
-
-Before proposing one, ask:
-
-```text
-What breaks without this rule?
-Is it always true, or conditional?
-Can a deterministic tool enforce it better?
-Does it belong in the bootloader or an on-demand reference?
-Can we write an eval that catches its absence?
-```
-
-If the answer is fuzzy, the rule probably is too.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution mechanics, [GOVERNANCE.md](GOVERNANCE.md) for merge and maintainer policy, [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for participation expectations, and [SECURITY.md](SECURITY.md) for private vulnerability reporting.
+Start with [CONTRIBUTING.md](CONTRIBUTING.md). Participation is covered by [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and vulnerabilities follow [SECURITY.md](SECURITY.md).
 
 ## License
 
-[MIT](LICENSE)
+MIT — see [LICENSE](LICENSE).
 
 ---
 
