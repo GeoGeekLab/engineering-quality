@@ -2,6 +2,8 @@
 
 Contributions should improve the playbook's usefulness without turning it into a catalog of personal preferences.
 
+Participation is governed by [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) and [GOVERNANCE.md](GOVERNANCE.md). Security vulnerabilities follow [SECURITY.md](SECURITY.md) and must not be disclosed in public issues.
+
 ## Principles
 
 - Prefer a concrete failure mode or maintenance benefit over a style opinion.
@@ -11,6 +13,16 @@ Contributions should improve the playbook's usefulness without turning it into a
 - Keep `SKILL.md` compact; put optional depth in references or workflows.
 - Add or update an evaluation case when changing behavior.
 - Keep distribution and release invariants reproducible.
+
+## Issues and proposals
+
+Use the structured GitHub issue forms:
+
+- **Bug report** for reproducible incorrect behavior or regressions,
+- **Host compatibility report** for installation, packaging, invocation, or host-specific failures,
+- **Engineering-quality proposal** for concrete rules, workflows, references, evals, or repository-quality changes.
+
+Open-ended questions and early design exploration belong in GitHub Discussions once Discussions is enabled.
 
 ## Development
 
@@ -26,7 +38,10 @@ Before opening a change:
 2. run unit tests,
 3. verify deterministic packaging,
 4. inspect the complete diff,
-5. update documentation or evaluation fixtures when behavior changes.
+5. update documentation or evaluation fixtures when behavior changes,
+6. identify any GitHub ruleset or repository-setting change required by the patch.
+
+Changes target `main` through pull requests. Required CI checks and conversation resolution are part of the merge contract; see [GOVERNANCE.md](GOVERNANCE.md).
 
 Build the clean distribution archive with:
 
