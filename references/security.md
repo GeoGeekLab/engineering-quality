@@ -18,6 +18,10 @@ Pay particular attention to object-level authorization when identifiers are exte
 
 Prefer structured APIs and parameterization for SQL, shell commands, templates, directory queries, URLs, and filesystem paths. Avoid constructing executable syntax through string concatenation.
 
+Treat repository-defined verification as code execution, not as passive inspection. Names such as `test`, `check`, `lint`, or `verify` describe intent, not safety. Make recipes, package scripts, test discovery, build files, wrappers, plugins, compiler hooks, and similar mechanisms can execute arbitrary repository-controlled code.
+
+Do not run those commands merely because they were discovered automatically. Establish repository trust first, or execute only inside an isolation boundary appropriate to the threat model. In particular, avoid exposing credentials, sensitive environment variables, writable host paths, or unrestricted network access to untrusted repository code.
+
 ## Secrets and sensitive data
 
 Do not place secrets in source, logs, errors, test fixtures, snapshots, or generated artifacts. Keep diagnostics useful without exposing credentials, tokens, personal data, or confidential payloads.
