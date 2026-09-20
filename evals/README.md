@@ -117,6 +117,7 @@ Claude Code:
 python scripts/run_evals.py \
   --agent-command '{python} {repo}/scripts/host_eval_adapter.py claude-code' \
   --adapter-label claude-code-current \
+  --pass-env ANTHROPIC_API_KEY \
   --allow-workspace-execution \
   --output eval-results/claude-code.json
 ```
