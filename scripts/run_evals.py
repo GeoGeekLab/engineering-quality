@@ -218,7 +218,12 @@ def _format_agent_command(
         "workspace": str(workspace),
         "skill": str(skill),
     }
-    return [token.format(**replacements) for token in tokens]
+    formatted: list[str] = []
+    for token in tokens:
+        for key, value in replacements.items():
+            token = token.replace("{" + key + "}", value)
+        formatted.append(token)
+    return formatted
 
 
 def run_agent(
@@ -276,6 +281,21 @@ def _read_optional(path: Path) -> str | None:
         return path.read_text(encoding="utf-8")
     except (OSError, UnicodeError):
         return None
+
+
+def _check_environment() -> dict[str, str]:
+    allowed = (
+        "HOME",
+        "LANG",
+        "LC_ALL",
+        "PATH",
+        "SYSTEMROOT",
+        "TEMP",
+        "TMP",
+        "TMPDIR",
+        "WINDIR",
+    )
+    return {key: os.environ[key] for key in allowed if key in os.environ}
 
 
 def evaluate_check(
@@ -400,7 +420,7 @@ def evaluate_check(
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     text=True,
-                    env=os.environ.copy(),
+                    env=_check_environment(),
                 )
                 execution = {
                     "exit_code": completed.returncode,
@@ -442,11 +462,21 @@ def evaluate_case(
     keep_workspace: bool,
     workspace_parent: Path | None,
 ) -> dict[str, Any]:
-    temp = tempfile.TemporaryDirectory(
-        prefix=f"engineering-quality-{case['id']}-",
-        dir=workspace_parent,
-    )
-    workspace = Path(temp.name)
+    if keep_workspace:
+        workspace = Path(
+            tempfile.mkdtemp(
+                prefix=f"engineering-quality-{case['id']}-",
+                dir=workspace_parent,
+            )
+        )
+        cleanup = lambda: None
+    else:
+        temp = tempfile.TemporaryDirectory(
+            prefix=f"engineering-quality-{case['id']}-",
+            dir=workspace_parent,
+        )
+        workspace = Path(temp.name)
+        cleanup = temp.cleanup
 
     try:
         materialize_fixture(case, workspace)
@@ -503,11 +533,10 @@ def evaluate_case(
 
         if keep_workspace:
             result["workspace"] = str(workspace)
-            temp.cleanup = lambda: None  # type: ignore[method-assign]
 
         return result
     finally:
-        temp.cleanup()
+        cleanup()
 
 
 def build_report(
