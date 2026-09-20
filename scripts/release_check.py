@@ -38,6 +38,11 @@ def validate_release_workflow(text: str) -> list[str]:
         ("existing-release metadata reconciliation", "gh release edit"),
         ("existing-release asset reconciliation", "gh release upload"),
         ("asset replacement for safe reruns", "--clobber"),
+        ("release branch trigger", 'release/v*.*.*'),
+        ("release branch main-commit gate", "origin/main"),
+        ("release tag creation", "git/refs"),
+        ("artifact provenance", "actions/attest@"),
+        ("provenance verification", "gh attestation verify"),
     )
     for label, marker in rerun_requirements:
         if marker not in text:
