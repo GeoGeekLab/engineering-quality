@@ -21,7 +21,17 @@ REQUIRED_PATHS = (
     "SKILL.md",
     "VERSION",
     "CHANGELOG.md",
+    "CODE_OF_CONDUCT.md",
+    "CONTRIBUTING.md",
+    "GOVERNANCE.md",
+    "SECURITY.md",
     ".github/dependabot.yml",
+    ".github/CODEOWNERS",
+    ".github/PULL_REQUEST_TEMPLATE.md",
+    ".github/ISSUE_TEMPLATE/config.yml",
+    ".github/ISSUE_TEMPLATE/bug.yml",
+    ".github/ISSUE_TEMPLATE/proposal.yml",
+    ".github/ISSUE_TEMPLATE/compatibility.yml",
     ".claude-plugin/plugin.json",
     "agents/openai.yaml",
     "references/principles.md",
@@ -39,6 +49,7 @@ REQUIRED_PATHS = (
     "evals/result-schema.json",
     "evals/README.md",
     "docs/compatibility.md",
+    "docs/github-settings.md",
     "docs/release.md",
     "scripts/project_checks.py",
     "scripts/run_evals.py",
@@ -223,6 +234,73 @@ def validate_claude_plugin(root: Path) -> list[str]:
     return errors
 
 
+def validate_governance(root: Path) -> list[str]:
+    errors: list[str] = []
+
+    required_text = {
+        ".github/CODEOWNERS": (
+            "* @GeoGeekLab",
+        ),
+        ".github/ISSUE_TEMPLATE/config.yml": (
+            "blank_issues_enabled: false",
+            "SECURITY.md",
+        ),
+        ".github/ISSUE_TEMPLATE/bug.yml": (
+            "name: Bug report",
+            "body:",
+        ),
+        ".github/ISSUE_TEMPLATE/proposal.yml": (
+            "name: Engineering-quality proposal",
+            "body:",
+        ),
+        ".github/ISSUE_TEMPLATE/compatibility.yml": (
+            "name: Host compatibility report",
+            "body:",
+        ),
+        "SECURITY.md": (
+            "--trust-repository",
+            "--allow-workspace-execution",
+        ),
+        "GOVERNANCE.md": (
+            "quality (3.10)",
+            "quality (3.12)",
+            "quality (3.14)",
+            "package",
+            "required approving-review count should remain **0**",
+        ),
+        "docs/github-settings.md": (
+            "main-quality-gate",
+            "release-tag-immutability",
+            "Private vulnerability reporting",
+            "GitHub Discussions",
+        ),
+    }
+
+    for relative, markers in required_text.items():
+        path = root / relative
+        if not path.is_file():
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError) as exc:
+            errors.append(f"{relative}: cannot read file: {exc}")
+            continue
+        for required in markers:
+            if required not in text:
+                errors.append(f"{relative}: missing governance marker {required!r}")
+
+    ci = root / ".github" / "workflows" / "ci.yml"
+    if ci.is_file():
+        text = ci.read_text(encoding="utf-8")
+        for marker in ('quality:', 'package:', '- "3.10"', '- "3.12"', '- "3.14"'):
+            if marker not in text:
+                errors.append(
+                    f".github/workflows/ci.yml: governance expects CI marker {marker!r}"
+                )
+
+    return errors
+
+
 def validate_version(root: Path) -> list[str]:
     path = root / "VERSION"
     try:
@@ -376,6 +454,7 @@ def validate_repository(root: Path = ROOT) -> list[str]:
         errors.extend(validate_openai_metadata(root))
     if (root / ".claude-plugin" / "plugin.json").exists():
         errors.extend(validate_claude_plugin(root))
+    errors.extend(validate_governance(root))
     if (root / "evals" / "cases.json").exists() and (root / "evals" / "schema.json").exists():
         errors.extend(validate_evals(root))
     errors.extend(validate_workflow_action_pins(root))
