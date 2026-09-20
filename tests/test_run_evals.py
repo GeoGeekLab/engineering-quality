@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import shlex
 import sys
 import tempfile
@@ -135,7 +134,7 @@ class EvalRunnerTests(unittest.TestCase):
 
         report = run_evals.build_report(
             [result],
-            agent_command="example-agent",
+            adapter_label="example-agent",
             allow_workspace_execution=True,
         )
 
