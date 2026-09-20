@@ -71,6 +71,66 @@ class ValidateSkillTests(unittest.TestCase):
             self.assertEqual([], validate_skill.validate_workflow_action_pins(root))
 
 
+    def test_claude_plugin_version_must_match_version_file(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "VERSION").write_text("1.2.3\n", encoding="utf-8")
+            manifest = root / ".claude-plugin" / "plugin.json"
+            manifest.parent.mkdir(parents=True)
+            manifest.write_text(
+                '{'
+                '"name":"engineering-quality",'
+                '"description":"Quality workflows",'
+                '"version":"9.9.9",'
+                '"repository":"https://github.com/GeoGeekLab/engineering-quality",'
+                '"license":"MIT"'
+                '}',
+                encoding="utf-8",
+            )
+
+            errors = validate_skill.validate_claude_plugin(root)
+
+            self.assertTrue(any("does not match VERSION" in error for error in errors))
+
+    def test_openai_metadata_requires_interface_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            metadata = root / "agents" / "openai.yaml"
+            metadata.parent.mkdir(parents=True)
+            metadata.write_text(
+                "interface:\n"
+                "  display_name: \"Engineering Quality\"\n"
+                "policy:\n"
+                "  allow_implicit_invocation: true\n",
+                encoding="utf-8",
+            )
+
+            errors = validate_skill.validate_openai_metadata(root)
+
+            self.assertTrue(
+                any("short_description is required" in error for error in errors)
+            )
+            self.assertTrue(any("default_prompt is required" in error for error in errors))
+
+    def test_openai_metadata_rejects_invalid_invocation_policy(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            metadata = root / "agents" / "openai.yaml"
+            metadata.parent.mkdir(parents=True)
+            metadata.write_text(
+                "interface:\n"
+                "  display_name: \"Engineering Quality\"\n"
+                "  short_description: \"Engineering quality gate\"\n"
+                "  default_prompt: \"Apply engineering-quality.\"\n"
+                "policy:\n"
+                "  allow_implicit_invocation: maybe\n",
+                encoding="utf-8",
+            )
+
+            errors = validate_skill.validate_openai_metadata(root)
+
+            self.assertTrue(any("must be true or false" in error for error in errors))
+
     def test_eval_validation_rejects_unsupported_case_keys(self) -> None:
         cases = [
             {

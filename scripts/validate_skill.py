@@ -22,6 +22,8 @@ REQUIRED_PATHS = (
     "VERSION",
     "CHANGELOG.md",
     ".github/dependabot.yml",
+    ".claude-plugin/plugin.json",
+    "agents/openai.yaml",
     "references/principles.md",
     "references/verification.md",
     "references/review-rubric.md",
@@ -40,6 +42,7 @@ REQUIRED_PATHS = (
     "docs/release.md",
     "scripts/project_checks.py",
     "scripts/run_evals.py",
+    "scripts/host_eval_adapter.py",
     "scripts/package_skill.py",
     "scripts/release_check.py",
     "scripts/release_notes.py",
@@ -98,12 +101,126 @@ def validate_frontmatter(root: Path) -> list[str]:
     return errors
 
 
+
+def _parse_simple_yaml_sections(path: Path) -> tuple[dict[str, dict[str, str]], list[str]]:
+    sections: dict[str, dict[str, str]] = {}
+    errors: list[str] = []
+    current: str | None = None
+
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeError) as exc:
+        return {}, [f"{path}: cannot read file: {exc}"]
+
+    for number, raw in enumerate(lines, start=1):
+        if not raw.strip() or raw.lstrip().startswith("#"):
+            continue
+
+        if not raw.startswith(" "):
+            stripped = raw.strip()
+            if not stripped.endswith(":") or ":" in stripped[:-1]:
+                errors.append(f"{path}:{number}: unsupported top-level YAML entry")
+                current = None
+                continue
+            current = stripped[:-1].strip()
+            if not current:
+                errors.append(f"{path}:{number}: empty YAML section")
+                continue
+            sections.setdefault(current, {})
+            continue
+
+        if current is None or not raw.startswith("  ") or raw.startswith("   "):
+            errors.append(f"{path}:{number}: expected two-space nested YAML entry")
+            continue
+
+        stripped = raw.strip()
+        if ":" not in stripped:
+            errors.append(f"{path}:{number}: expected key: value")
+            continue
+
+        key, value = stripped.split(":", 1)
+        key = key.strip()
+        value = value.strip()
+        if not key or not value:
+            errors.append(f"{path}:{number}: key and value must be non-empty")
+            continue
+
+        if (
+            len(value) >= 2
+            and value[0] == value[-1]
+            and value[0] in {'"', "'"}
+        ):
+            value = value[1:-1]
+        sections[current][key] = value
+
+    return sections, errors
+
+
+def validate_openai_metadata(root: Path) -> list[str]:
+    path = root / "agents" / "openai.yaml"
+    sections, errors = _parse_simple_yaml_sections(path)
+    if errors:
+        return errors
+
+    interface = sections.get("interface")
+    if not interface:
+        return ["agents/openai.yaml: interface mapping is required"]
+
+    for key in ("display_name", "short_description", "default_prompt"):
+        value = interface.get(key, "")
+        if not value:
+            errors.append(f"agents/openai.yaml: interface.{key} is required")
+
+    policy = sections.get("policy", {})
+    implicit = policy.get("allow_implicit_invocation")
+    if implicit not in {"true", "false"}:
+        errors.append(
+            "agents/openai.yaml: policy.allow_implicit_invocation must be true or false"
+        )
+
+    return errors
+
 def validate_structure(root: Path) -> list[str]:
     return [
         f"missing required path: {relative}"
         for relative in REQUIRED_PATHS
         if not (root / relative).exists()
     ]
+
+
+def validate_claude_plugin(root: Path) -> list[str]:
+    path = root / ".claude-plugin" / "plugin.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        return [f".claude-plugin/plugin.json: invalid JSON: {exc}"]
+
+    if not isinstance(data, dict):
+        return [".claude-plugin/plugin.json: expected an object"]
+
+    errors: list[str] = []
+    if data.get("name") != "engineering-quality":
+        errors.append(".claude-plugin/plugin.json: name must be engineering-quality")
+
+    description = data.get("description")
+    if not isinstance(description, str) or not description.strip():
+        errors.append(".claude-plugin/plugin.json: description is required")
+
+    version = data.get("version")
+    expected = (root / "VERSION").read_text(encoding="utf-8").strip()
+    if version != expected:
+        errors.append(
+            f".claude-plugin/plugin.json: version {version!r} does not match VERSION {expected!r}"
+        )
+
+    repository = data.get("repository")
+    if repository != "https://github.com/GeoGeekLab/engineering-quality":
+        errors.append(".claude-plugin/plugin.json: canonical repository URL is required")
+
+    if data.get("license") != "MIT":
+        errors.append(".claude-plugin/plugin.json: license must be MIT")
+
+    return errors
 
 
 def validate_version(root: Path) -> list[str]:
@@ -255,6 +372,10 @@ def validate_repository(root: Path = ROOT) -> list[str]:
         errors.extend(validate_frontmatter(root))
     if (root / "VERSION").exists():
         errors.extend(validate_version(root))
+    if (root / "agents" / "openai.yaml").exists():
+        errors.extend(validate_openai_metadata(root))
+    if (root / ".claude-plugin" / "plugin.json").exists():
+        errors.extend(validate_claude_plugin(root))
     if (root / "evals" / "cases.json").exists() and (root / "evals" / "schema.json").exists():
         errors.extend(validate_evals(root))
     errors.extend(validate_workflow_action_pins(root))

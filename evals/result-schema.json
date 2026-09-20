@@ -9,6 +9,7 @@
     "status",
     "evidence_scope",
     "adapter",
+    "forwarded_environment",
     "cases"
   ],
   "properties": {
@@ -98,6 +99,13 @@
     },
     "adapter": {
       "type": "string"
+    },
+    "forwarded_environment": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
     }
   }
 }

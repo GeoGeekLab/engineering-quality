@@ -24,11 +24,14 @@ class PackageSkillTests(unittest.TestCase):
                 names = set(handle.namelist())
 
             self.assertIn("engineering-quality/SKILL.md", names)
+            self.assertIn("engineering-quality/agents/openai.yaml", names)
             self.assertIn("engineering-quality/references/principles.md", names)
             self.assertIn("engineering-quality/workflows/review.md", names)
             self.assertIn("engineering-quality/scripts/project_checks.py", names)
             self.assertIn("engineering-quality/MANIFEST.sha256", names)
             self.assertNotIn("engineering-quality/README.md", names)
+            self.assertNotIn("engineering-quality/.claude-plugin/plugin.json", names)
+            self.assertNotIn("engineering-quality/scripts/host_eval_adapter.py", names)
             self.assertFalse(any("/tests/" in name for name in names))
             self.assertFalse(any("/.github/" in name for name in names))
 

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import os
 import shlex
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -49,6 +51,36 @@ class EvalRunnerTests(unittest.TestCase):
         )
         return script
 
+    def test_agent_environment_does_not_inherit_unrequested_secrets(self) -> None:
+        with mock.patch.dict(
+            os.environ,
+            {
+                "PATH": "/usr/bin",
+                "CODEX_API_KEY": "explicit",
+                "UNRELATED_SECRET": "do-not-forward",
+                "HOME": "/sensitive/home",
+            },
+            clear=True,
+        ):
+            env = run_evals._isolated_environment(("CODEX_API_KEY",))
+
+        self.assertEqual("explicit", env["CODEX_API_KEY"])
+        self.assertNotIn("UNRELATED_SECRET", env)
+        self.assertNotIn("HOME", env)
+
+    def test_check_environment_uses_isolated_home(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            with mock.patch.dict(
+                os.environ,
+                {"PATH": "/usr/bin", "HOME": "/sensitive/home"},
+                clear=True,
+            ):
+                env = run_evals._isolated_environment(home=home)
+
+        self.assertEqual(str(home), env["HOME"])
+        self.assertEqual(str(home), env["USERPROFILE"])
+
     def test_validate_cases_rejects_unsafe_fixture_path(self) -> None:
         case = self.sample_case()
         case["fixture"]["files"] = {"../escape.py": "bad\n"}
@@ -66,7 +98,7 @@ class EvalRunnerTests(unittest.TestCase):
             result = run_evals.evaluate_case(
                 self.sample_case(),
                 agent_command=command,
-                skill=ROOT / "SKILL.md",
+                skill_root=ROOT,
                 agent_timeout=30,
                 check_timeout=30,
                 allow_workspace_execution=True,
@@ -87,7 +119,7 @@ class EvalRunnerTests(unittest.TestCase):
             result = run_evals.evaluate_case(
                 self.sample_case(),
                 agent_command=command,
-                skill=ROOT / "SKILL.md",
+                skill_root=ROOT,
                 agent_timeout=30,
                 check_timeout=30,
                 allow_workspace_execution=False,
@@ -110,7 +142,7 @@ class EvalRunnerTests(unittest.TestCase):
             result = run_evals.evaluate_case(
                 self.sample_case(),
                 agent_command=command,
-                skill=ROOT / "SKILL.md",
+                skill_root=ROOT,
                 agent_timeout=30,
                 check_timeout=30,
                 allow_workspace_execution=True,
@@ -120,6 +152,67 @@ class EvalRunnerTests(unittest.TestCase):
 
         self.assertEqual("failed", result["status"])
         self.assertEqual(2, result["agent"]["exit_code"])
+
+    def test_agent_cannot_mutate_staged_skill_without_failing_case(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            agent = root / "mutating_agent.py"
+            agent.write_text(
+                "import os\n"
+                "from pathlib import Path\n"
+                "workspace = Path(os.environ['EQ_EVAL_WORKSPACE'])\n"
+                "(workspace / 'solution.py').write_text('value = 1\\n', encoding='utf-8')\n"
+                "skill = Path(os.environ['EQ_EVAL_SKILL_PATH'])\n"
+                "skill.write_text(skill.read_text(encoding='utf-8') + '\\nmutated\\n', encoding='utf-8')\n"
+                "print('verified')\n",
+                encoding="utf-8",
+            )
+            command = shlex.join([sys.executable, str(agent)])
+
+            result = run_evals.evaluate_case(
+                self.sample_case(),
+                agent_command=command,
+                skill_root=ROOT,
+                agent_timeout=30,
+                check_timeout=30,
+                allow_workspace_execution=True,
+                keep_workspace=False,
+                workspace_parent=None,
+            )
+
+        self.assertEqual("failed", result["status"])
+        integrity = next(
+            check for check in result["checks"]
+            if check["type"] == "skill_payload_integrity"
+        )
+        self.assertEqual("failed", integrity["status"])
+        self.assertIn("SKILL.md", integrity["changed_files"])
+
+    def test_report_records_only_forwarded_environment_names(self) -> None:
+        report = run_evals.build_report(
+            [],
+            adapter_label="example-agent",
+            allow_workspace_execution=False,
+            forwarded_environment=("CODEX_API_KEY", "CODEX_API_KEY", "CUSTOM_PROVIDER"),
+        )
+
+        self.assertEqual(
+            ["CODEX_API_KEY", "CUSTOM_PROVIDER"],
+            report["forwarded_environment"],
+        )
+
+    def test_cli_rejects_requested_environment_that_is_not_set(self) -> None:
+        with mock.patch.dict(os.environ, {}, clear=True):
+            with self.assertRaises(SystemExit) as raised:
+                run_evals.main(
+                    [
+                        "--validate-only",
+                        "--pass-env",
+                        "MISSING_CREDENTIAL",
+                    ]
+                )
+
+        self.assertEqual(2, raised.exception.code)
 
     def test_report_does_not_claim_qualitative_rubric_was_judged(self) -> None:
         result = {

@@ -10,9 +10,9 @@
 [![Release](https://img.shields.io/github/v/release/GeoGeekLab/engineering-quality?style=flat-square)](https://github.com/GeoGeekLab/engineering-quality/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f?style=flat-square)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.12%20%7C%203.14-3776AB?style=flat-square&logo=python&logoColor=white)](.github/workflows/ci.yml)
-[![Codex](https://img.shields.io/badge/Codex-ready-111111?style=flat-square&logo=openai&logoColor=white)](#codex--one-instruction)
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-ready-D97757?style=flat-square&logo=anthropic&logoColor=white)](#claude-code)
-[![ChatGPT](https://img.shields.io/badge/ChatGPT-skill-10A37F?style=flat-square&logo=openai&logoColor=white)](#chatgpt)
+[![Codex](https://img.shields.io/badge/Codex-skill-111111?style=flat-square&logo=openai&logoColor=white)](#codex)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-skill%20%2B%20plugin-D97757?style=flat-square&logo=anthropic&logoColor=white)](#claude-code)
+[![ChatGPT](https://img.shields.io/badge/ChatGPT-uploadable%20skill-10A37F?style=flat-square&logo=openai&logoColor=white)](#chatgpt)
 
 A portable engineering playbook for coding agents and humans who want changes that are correct, local, reviewable, and provable.
 
@@ -62,71 +62,73 @@ Function length, coverage, complexity, and diff size are signals. They are not c
 
 ## Install
 
-### Codex — one instruction
+Host instructions below were last checked against official vendor documentation on **2026-09-20**. See [docs/compatibility.md](docs/compatibility.md) for evidence levels and source links.
 
-Paste this into Codex:
+### Codex
+
+For local setup or experimentation, use the built-in skill installer:
 
 ```text
 $skill-installer Install engineering-quality from https://github.com/GeoGeekLab/engineering-quality
 ```
 
-That is the preferred Codex path: the built-in skill installer fetches the repository and installs the skill in a Codex-recognized location.
-
-<details>
-<summary><strong>Codex alternatives: cross-agent CLI and manual install</strong></summary>
-
-Install globally with the cross-agent `skills` CLI:
+Or install the skill manually for the current user:
 
 ```bash
-npx -y skills@latest add GeoGeekLab/engineering-quality -g -a codex -y
+git clone https://github.com/GeoGeekLab/engineering-quality.git \
+  ~/.agents/skills/engineering-quality
 ```
 
-Or install manually for the current user:
-
-```bash
-git clone https://github.com/GeoGeekLab/engineering-quality.git ~/.agents/skills/engineering-quality
-```
-
-Codex discovers skills from `.agents/skills` locations. If a newly installed skill is not visible immediately, restart the Codex session.
-
-</details>
+OpenAI currently recommends **Plugins** for reusable skill distribution. This repository includes packaged `agents/openai.yaml` metadata, but engineering-quality is not currently claiming publication or OpenAI Verified status in the Plugin Directory.
 
 ### Claude Code
 
-Install globally with the cross-agent `skills` CLI:
+Anthropic supports standalone Skills under `~/.claude/skills`:
 
 ```bash
-npx -y skills@latest add GeoGeekLab/engineering-quality -g -a claude-code -y
+git clone https://github.com/GeoGeekLab/engineering-quality.git \
+  ~/.claude/skills/engineering-quality
 ```
 
-Manual installation:
+The repository is also a native single-skill Claude Code plugin through `.claude-plugin/plugin.json`. A development checkout can be loaded directly:
 
 ```bash
-git clone https://github.com/GeoGeekLab/engineering-quality.git ~/.claude/skills/engineering-quality
+claude --plugin-dir /path/to/engineering-quality
 ```
 
-Start a new Claude Code session after installation if the skill is not picked up by the current session.
+The project is not currently claiming publication in a Claude plugin marketplace.
 
 ### ChatGPT
 
-For the cleanest installation, use the packaged ZIP attached to the latest GitHub Release:
+For eligible ChatGPT **Business, Enterprise, Healthcare, and Edu** workspaces, use the packaged ZIP attached to the latest GitHub Release:
 
 **[Open the latest release](https://github.com/GeoGeekLab/engineering-quality/releases/latest)**
 
-For a development checkout, build the same package locally:
+In ChatGPT, open **Plugins → Skills → Create → Upload from your computer**, then upload:
+
+```text
+engineering-quality-<version>.zip
+```
+
+For a development checkout, build the same runtime package locally:
 
 ```bash
 make package
 ```
 
-Then upload `dist/engineering-quality-<version>.zip` through the ChatGPT Skills interface available to your workspace.
+Availability remains subject to workspace settings and current product rollout. Broader reusable discovery across ChatGPT and Codex uses OpenAI Plugins; this project has not yet been submitted or published there.
 
-> [!NOTE]
-> ChatGPT Skills availability depends on the workspace plan, admin settings, and current product availability.
+### Optional cross-agent CLI
 
-See [docs/compatibility.md](docs/compatibility.md) for the maintained host compatibility matrix and installation details.
+The third-party `skills` CLI can still be convenient:
 
-Platform references: [Codex Skills](https://developers.openai.com/docs/build-skills) · [ChatGPT Skills](https://help.openai.com/en/articles/20001066) · [Claude Skills](https://www.anthropic.com/research/skills) · [skills CLI](https://github.com/vercel-labs/skills)
+```bash
+npx -y skills@1.7.0 add GeoGeekLab/engineering-quality
+```
+
+It is documented as a convenience rather than the vendor-native authority for OpenAI or Anthropic installation.
+
+Platform references: [OpenAI Skills](https://developers.openai.com/docs/build-skills) · [OpenAI Plugins](https://help.openai.com/en/articles/20001256/) · [ChatGPT Skills](https://help.openai.com/en/articles/20001066) · [Claude Skills](https://www.anthropic.com/research/skills) · [Claude Code plugins](https://code.claude.com/docs/en/plugins)
 
 ## Runtime
 
@@ -152,6 +154,10 @@ No "done" until the evidence matches the claim.
 ```text
 engineering-quality/
 ├── SKILL.md                     # bootloader: invariants + routing
+├── agents/
+│   └── openai.yaml              # OpenAI skill UI + invocation metadata
+├── .claude-plugin/
+│   └── plugin.json              # Claude Code single-skill plugin metadata
 ├── VERSION                      # canonical release version
 ├── workflows/
 │   ├── feature.md               # add behavior
@@ -171,6 +177,7 @@ engineering-quality/
 │   └── language-profiles.md
 ├── scripts/
 │   ├── project_checks.py
+│   ├── host_eval_adapter.py
 │   ├── validate_skill.py
 │   ├── package_skill.py
 │   ├── release_check.py
@@ -179,6 +186,7 @@ engineering-quality/
 ├── evals/
 │   ├── cases.json
 │   ├── schema.json
+│   ├── result-schema.json
 │   └── README.md
 ├── docs/
 │   ├── compatibility.md

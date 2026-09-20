@@ -82,6 +82,8 @@ Available command placeholders:
 - `{workspace}`
 - `{skill}`
 - `{case_id}`
+- `{repo}`
+- `{python}`
 
 The same values are exported as:
 
@@ -92,13 +94,51 @@ The same values are exported as:
 
 Use `--case <id>` repeatedly to run a subset.
 
+## Vendor-native adapters
+
+The repository includes `scripts/host_eval_adapter.py` for current Codex and Claude Code CLI paths.
+
+Codex:
+
+```bash
+python scripts/run_evals.py \
+  --agent-command '{python} {repo}/scripts/host_eval_adapter.py codex' \
+  --adapter-label codex-current \
+  --pass-env CODEX_API_KEY \
+  --allow-workspace-execution \
+  --output eval-results/codex.json
+```
+
+The adapter installs the staged Skill into an isolated temporary user Skill directory and calls `codex exec` with an ephemeral workspace-write sandbox.
+
+Claude Code:
+
+```bash
+python scripts/run_evals.py \
+  --agent-command '{python} {repo}/scripts/host_eval_adapter.py claude-code' \
+  --adapter-label claude-code-current \
+  --pass-env ANTHROPIC_API_KEY \
+  --allow-workspace-execution \
+  --output eval-results/claude-code.json
+```
+
+The Claude adapter uses non-interactive print mode with `--bare`, auto permissions, no prompt responder, no session persistence, and an explicit staged Skill directory.
+
+Adapter unit tests validate command construction and staged-skill handling. Those tests are **not** real model runs. A host is behaviorally verified only after an actual authenticated CLI run produces a saved report.
+
+Each case receives a fresh runtime Skill staging directory. The harness hashes it before and after the agent exits. Any mutation produces a failing `skill_payload_integrity` check, so one case cannot rewrite the Skill used by later cases.
+
+See [host compatibility](../docs/compatibility.md) for the dated vendor documentation basis.
+
 ## Execution boundary
 
-The agent adapter is a command chosen by the evaluator and may itself execute code.
+The agent adapter is a command chosen by the evaluator and may itself execute code. For publishable or comparative evidence, pass an explicit `--model <model-id>` to the native host adapter and use an adapter label that identifies the host/model configuration; default models can change over time.
+
+The adapter does not inherit the evaluator's complete environment. By default it receives only basic process/runtime variables plus the `EQ_EVAL_*` case context. Credentials and provider configuration must be forwarded deliberately with repeatable `--pass-env NAME` flags. This keeps unrelated API keys, cloud credentials, and local configuration out of the evaluated process.
 
 After the agent exits, some deterministic checks may execute code from the agent-modified workspace. That is disabled unless `--allow-workspace-execution` is supplied. The flag acknowledges this execution boundary; it does not make generated code safe.
 
-Command checks receive a reduced environment containing basic process/runtime variables such as `PATH`, temporary-directory settings, locale, and home-directory information. Arbitrary host environment variables are not forwarded to those checks. Filesystem and network isolation still require an external sandbox, container, VM, or restricted runner when the threat model requires it.
+Command checks receive an even narrower environment and a fresh temporary `HOME` / `USERPROFILE`, rather than the evaluator's real home directory. Filesystem and network isolation still require an external sandbox, container, VM, or restricted runner when the threat model requires it.
 
 ## Result semantics
 

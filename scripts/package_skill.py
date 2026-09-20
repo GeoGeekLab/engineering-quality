@@ -19,6 +19,7 @@ REQUIRED_FILES = (
     "SKILL.md",
     "VERSION",
     "LICENSE",
+    "agents/openai.yaml",
     "scripts/project_checks.py",
 )
 REQUIRED_DIRS = ("references", "workflows")
