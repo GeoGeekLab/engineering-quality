@@ -132,7 +132,7 @@ See [host compatibility](../docs/compatibility.md) for the dated vendor document
 
 ## Execution boundary
 
-The agent adapter is a command chosen by the evaluator and may itself execute code.
+The agent adapter is a command chosen by the evaluator and may itself execute code. For publishable or comparative evidence, pass an explicit `--model <model-id>` to the native host adapter and use an adapter label that identifies the host/model configuration; default models can change over time.
 
 The adapter does not inherit the evaluator's complete environment. By default it receives only basic process/runtime variables plus the `EQ_EVAL_*` case context. Credentials and provider configuration must be forwarded deliberately with repeatable `--pass-env NAME` flags. This keeps unrelated API keys, cloud credentials, and local configuration out of the evaluated process.
 
