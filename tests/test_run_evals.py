@@ -66,7 +66,7 @@ class EvalRunnerTests(unittest.TestCase):
             result = run_evals.evaluate_case(
                 self.sample_case(),
                 agent_command=command,
-                skill=ROOT / "SKILL.md",
+                skill_root=ROOT,
                 agent_timeout=30,
                 check_timeout=30,
                 allow_workspace_execution=True,
@@ -87,7 +87,7 @@ class EvalRunnerTests(unittest.TestCase):
             result = run_evals.evaluate_case(
                 self.sample_case(),
                 agent_command=command,
-                skill=ROOT / "SKILL.md",
+                skill_root=ROOT,
                 agent_timeout=30,
                 check_timeout=30,
                 allow_workspace_execution=False,
@@ -110,7 +110,7 @@ class EvalRunnerTests(unittest.TestCase):
             result = run_evals.evaluate_case(
                 self.sample_case(),
                 agent_command=command,
-                skill=ROOT / "SKILL.md",
+                skill_root=ROOT,
                 agent_timeout=30,
                 check_timeout=30,
                 allow_workspace_execution=True,
@@ -120,6 +120,41 @@ class EvalRunnerTests(unittest.TestCase):
 
         self.assertEqual("failed", result["status"])
         self.assertEqual(2, result["agent"]["exit_code"])
+
+    def test_agent_cannot_mutate_staged_skill_without_failing_case(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            agent = root / "mutating_agent.py"
+            agent.write_text(
+                "import os\n"
+                "from pathlib import Path\n"
+                "workspace = Path(os.environ['EQ_EVAL_WORKSPACE'])\n"
+                "(workspace / 'solution.py').write_text('value = 1\\n', encoding='utf-8')\n"
+                "skill = Path(os.environ['EQ_EVAL_SKILL_PATH'])\n"
+                "skill.write_text(skill.read_text(encoding='utf-8') + '\\nmutated\\n', encoding='utf-8')\n"
+                "print('verified')\n",
+                encoding="utf-8",
+            )
+            command = shlex.join([sys.executable, str(agent)])
+
+            result = run_evals.evaluate_case(
+                self.sample_case(),
+                agent_command=command,
+                skill_root=ROOT,
+                agent_timeout=30,
+                check_timeout=30,
+                allow_workspace_execution=True,
+                keep_workspace=False,
+                workspace_parent=None,
+            )
+
+        self.assertEqual("failed", result["status"])
+        integrity = next(
+            check for check in result["checks"]
+            if check["type"] == "skill_payload_integrity"
+        )
+        self.assertEqual("failed", integrity["status"])
+        self.assertIn("SKILL.md", integrity["changed_files"])
 
     def test_report_does_not_claim_qualitative_rubric_was_judged(self) -> None:
         result = {
