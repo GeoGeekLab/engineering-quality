@@ -31,7 +31,7 @@ Before editing code:
 5. Identify likely verification commands from project configuration.
 6. Note compatibility, security, concurrency, persistence, and migration boundaries that may be affected.
 
-Prefer repository-defined commands over generic commands. If the repository does not make its checks obvious, use `scripts/project_checks.py` to discover conservative candidates without installing anything.
+Prefer repository-defined commands over generic commands. If the repository does not make its checks obvious, use `scripts/project_checks.py` to discover candidates without executing them or installing anything. Treat discovered command names as labels, not proof that execution is safe.
 
 Read [change discipline](references/change-discipline.md) when the task touches more than one concern or starts expanding in scope.
 
