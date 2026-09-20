@@ -152,7 +152,9 @@ The adapter installs the staged runtime skill into an isolated temporary `$HOME/
 codex exec --ephemeral --ignore-user-config --sandbox workspace-write <task>
 ```
 
-For unattended authentication, use the authentication mechanism supported by the installed Codex CLI. Do not put credentials in the adapter command string.
+For unattended authentication, OpenAI documents `CODEX_API_KEY` for `codex exec`; trusted automation can also use `CODEX_ACCESS_TOKEN` or workload-identity variables when appropriate. Forward only the variables the run actually needs with repeated `--pass-env NAME` flags. Do not put credentials in the adapter command string.
+
+The runner does not inherit the caller's complete environment. The adapter receives only basic process variables plus names explicitly selected with `--pass-env`, then creates an isolated temporary `HOME` and `CODEX_HOME`.
 
 ### Claude Code
 
