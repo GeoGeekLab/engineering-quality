@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here.
 
+## Unreleased
+
+- Make tagged-release publication rerunnable when a GitHub Release already exists, including metadata reconciliation and replacement of expected distribution assets.
+- Add a regression check that prevents returning to a create-only release workflow.
+
 ## 1.1.0 - 2026-09-19
 
 - Add deterministic skill packaging with an internal SHA-256 manifest and external archive checksum.
