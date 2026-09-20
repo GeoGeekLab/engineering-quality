@@ -104,6 +104,7 @@ Codex:
 python scripts/run_evals.py \
   --agent-command '{python} {repo}/scripts/host_eval_adapter.py codex' \
   --adapter-label codex-current \
+  --pass-env CODEX_API_KEY \
   --allow-workspace-execution \
   --output eval-results/codex.json
 ```
