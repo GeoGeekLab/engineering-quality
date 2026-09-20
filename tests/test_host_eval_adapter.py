@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -12,6 +14,23 @@ import host_eval_adapter
 
 
 class HostEvalAdapterTests(unittest.TestCase):
+    def test_adapter_environment_forwards_only_explicit_names(self) -> None:
+        with mock.patch.dict(
+            os.environ,
+            {
+                "PATH": "/usr/bin",
+                "EQ_EVAL_PASSED_ENV": "ANTHROPIC_API_KEY",
+                "ANTHROPIC_API_KEY": "explicit",
+                "UNRELATED_SECRET": "do-not-forward",
+            },
+            clear=True,
+        ):
+            env = host_eval_adapter._adapter_environment()
+
+        self.assertEqual("explicit", env["ANTHROPIC_API_KEY"])
+        self.assertNotIn("UNRELATED_SECRET", env)
+        self.assertNotIn("EQ_EVAL_PASSED_ENV", env)
+
     def test_codex_uses_noninteractive_workspace_write_mode(self) -> None:
         argv = host_eval_adapter.codex_argv("codex", "fix the bug")
 
