@@ -1,37 +1,129 @@
 # Behavioral evaluations
 
-The evaluation fixtures describe engineering decisions the skill should consistently encourage or reject.
+The evaluation suite exercises engineering decisions in temporary miniature Git repositories.
 
-They are not benchmark scores and do not attempt to reduce software quality to a single number.
+It is designed to answer a narrower and more defensible question than a benchmark score:
 
-## Schema
+> Given a concrete repository and task, what did an agent actually change, what executable checks passed, and which qualitative expectations still require review?
 
-`cases.json` is validated against the repository's structural contract documented in `schema.json`.
+The suite does not reduce engineering quality to one numeric score.
 
-Each case contains:
+## Evidence layers
+
+An evaluation result separates four kinds of evidence:
+
+1. **Harness executed** — the runner materialized the fixture, invoked the configured agent adapter, captured output, and inspected the resulting workspace.
+2. **Agent behavior executed** — the recorded diff and transcript came from an actual adapter process, not from static fixture validation.
+3. **Deterministic checks executed** — file invariants, change-scope rules, tests, generators, or other commands were actually evaluated.
+4. **Qualitative rubric not automatically judged** — `must_do` and `must_not_do` remain explicit review criteria unless a case maps them to deterministic checks.
+
+A fake or deterministic adapter used by unit tests proves only that the harness works. It is not evidence that Codex, ChatGPT, Claude Code, or another coding agent passes the behavioral suite.
+
+## Case structure
+
+`cases.json` contains 14 executable scenarios. Each case defines:
 
 - `id`: stable kebab-case identifier,
-- `task`: scenario under evaluation,
-- `must_do`: behaviors expected from the engineering-quality contract,
-- `must_not_do`: behaviors that would violate the contract.
+- `task`: the instruction exposed to the agent,
+- `must_do`: qualitative behavior expected from the skill contract,
+- `must_not_do`: qualitative behavior that violates the contract,
+- `fixture.files`: the miniature repository materialized for the run,
+- `checks`: deterministic evidence that can be evaluated after the agent exits.
 
-## Coverage strategy
+The agent receives the task and repository fixture. The qualitative rubric is not injected into the agent prompt by the runner.
 
-Cases target failure modes that are easy to miss with style-oriented checks:
+`schema.json` documents the case format. `result-schema.json` documents the machine-readable report envelope.
 
-- scope creep,
-- compatibility breaks,
-- speculative abstraction,
-- unsupported completion claims,
-- unsafe trust boundaries,
-- unmeasured optimization,
-- concurrency leaks,
-- behavior-changing refactors,
-- unnecessary dependencies,
-- flaky-test masking,
-- unsafe migrations,
-- hand-edited generated output,
+## Deterministic checks
+
+The runner currently supports:
+
+- required or allowed changed-file sets,
+- file existence and absence,
+- unchanged-file assertions,
+- required or forbidden file content,
+- final-output term assertions,
+- executable commands with optional repetition.
+
+Executable commands are useful for regression tests, compatibility tests, generators, and repeated flaky-test checks. They are not treated as inherently safe.
+
+## Validate the suite
+
+Fixture/schema validation is part of the repository quality gate:
+
+```bash
+make eval-validate
+make check
+```
+
+Validation does not invoke an agent.
+
+## Run a real agent adapter
+
+The runner is host-neutral. Supply a command that can operate on the current working directory and accept the task through a placeholder or the exported environment variables.
+
+Example:
+
+```bash
+python scripts/run_evals.py \
+  --agent-command 'my-agent --prompt {task}' \
+  --allow-workspace-execution \
+  --output eval-results/my-agent.json
+```
+
+Available command placeholders:
+
+- `{task}`
+- `{workspace}`
+- `{skill}`
+- `{case_id}`
+
+The same values are exported as:
+
+- `EQ_EVAL_TASK`
+- `EQ_EVAL_WORKSPACE`
+- `EQ_EVAL_SKILL_PATH`
+- `EQ_EVAL_CASE_ID`
+
+Use `--case <id>` repeatedly to run a subset.
+
+## Execution boundary
+
+The agent adapter is a command chosen by the evaluator and may itself execute code.
+
+After the agent exits, some deterministic checks may execute code from the agent-modified workspace. That is disabled unless `--allow-workspace-execution` is supplied. The flag acknowledges this execution boundary; it does not make generated code safe.
+
+Command checks receive a reduced environment containing basic process/runtime variables such as `PATH`, temporary-directory settings, locale, and home-directory information. Arbitrary host environment variables are not forwarded to those checks. Filesystem and network isolation still require an external sandbox, container, VM, or restricted runner when the threat model requires it.
+
+## Result semantics
+
+Each case is reported as:
+
+- `passed` — the agent command exited successfully and every configured deterministic check passed,
+- `failed` — the agent failed or at least one deterministic check failed,
+- `incomplete` — a relevant command check was intentionally not executed.
+
+A `passed` case means the configured deterministic evidence passed. It does **not** mean every qualitative `must_do` item was automatically judged.
+
+The report's `evidence_scope` field makes that limitation machine-readable.
+
+## Coverage
+
+The current scenarios cover:
+
+- minimal defect fixes and regression scope,
+- public-contract migration,
+- incorrect abstraction pressure,
+- honest verification reporting,
+- path traversal boundaries,
+- speculative performance optimization,
+- bounded concurrency and ordering,
+- behavior-preserving refactoring,
+- unnecessary dependency pressure,
+- flaky-test repair,
+- mixed-version database migration,
+- generated-code source-of-truth changes,
 - swallowed errors,
-- uncontrolled change expansion.
+- uncontrolled scope expansion.
 
-When the skill contract changes, update or add a case that would fail under the old behavior and pass under the intended behavior.
+When the skill contract changes, add or strengthen a case that can distinguish the old behavior from the intended behavior. Prefer executable invariants over prose-only expectations when the behavior can be measured.
