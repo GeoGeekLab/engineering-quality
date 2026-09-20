@@ -107,18 +107,15 @@ jobs:
         run: |
           set -euo pipefail
 
-          existing="$(
-            gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}"               --jq '.object.sha' 2>/dev/null || true
-          )"
-
-          if [[ -n "${existing}" ]]; then
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+            existing="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" --jq '.object.sha')"
             if [[ "${existing}" != "${GITHUB_SHA}" ]]; then
               echo "::error::Existing tag ${RELEASE_TAG} points to ${existing}, expected ${GITHUB_SHA}"
               exit 1
             fi
             echo "Tag ${RELEASE_TAG} already points to the release commit."
           else
-            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs"               -f ref="refs/tags/${RELEASE_TAG}"               -f sha="${GITHUB_SHA}" >/dev/null
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" -f ref="refs/tags/${RELEASE_TAG}" -f sha="${GITHUB_SHA}" >/dev/null
           fi
 
       - name: Download release payload
