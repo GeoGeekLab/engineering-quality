@@ -4,6 +4,10 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 1.2.2 - 2026-09-20
+
+- Give GitHub CLI an explicit repository context in the checkout-free publish job so Release creation no longer depends on local Git repository discovery.
+
 ## 1.2.1 - 2026-09-20
 
 - Fix missing-tag detection so GitHub CLI 404 response bodies cannot be misclassified as an existing tag SHA.
