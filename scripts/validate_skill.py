@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate repository structure, skill metadata, links, versioning, and evaluation fixtures."""
+"""Validate repository structure, skill metadata, links, workflows, versioning, and evals."""
 
 from __future__ import annotations
 
@@ -13,10 +13,13 @@ ROOT = Path(__file__).resolve().parents[1]
 NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 SEMVER_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 LINK_RE = re.compile(r"!?(?:\[[^\]]*\])\(([^)]+)\)")
+ACTION_USE_RE = re.compile(r"\buses:\s*([^\s#]+)")
+FULL_COMMIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 REQUIRED_PATHS = (
     "SKILL.md",
     "VERSION",
     "CHANGELOG.md",
+    ".github/dependabot.yml",
     "references/principles.md",
     "references/verification.md",
     "references/review-rubric.md",
@@ -160,6 +163,54 @@ def validate_markdown_links(root: Path) -> list[str]:
     return errors
 
 
+def validate_workflow_action_pins(root: Path) -> list[str]:
+    workflows = root / ".github" / "workflows"
+    if not workflows.is_dir():
+        return ["missing .github/workflows directory"]
+
+    errors: list[str] = []
+    paths = sorted((*workflows.glob("*.yml"), *workflows.glob("*.yaml")))
+
+    for workflow in paths:
+        try:
+            lines = workflow.read_text(encoding="utf-8").splitlines()
+        except (OSError, UnicodeError) as exc:
+            errors.append(f"{workflow.relative_to(root)}: cannot read file: {exc}")
+            continue
+
+        for number, line in enumerate(lines, start=1):
+            match = ACTION_USE_RE.search(line)
+            if match is None:
+                continue
+
+            target = match.group(1).strip().strip('"').strip("'")
+            if target.startswith("./"):
+                continue
+
+            if target.startswith("docker://"):
+                if "@sha256:" not in target:
+                    errors.append(
+                        f"{workflow.relative_to(root)}:{number}: "
+                        f"container action is not digest-pinned: {target}"
+                    )
+                continue
+
+            if "@" not in target:
+                errors.append(
+                    f"{workflow.relative_to(root)}:{number}: action has no ref: {target}"
+                )
+                continue
+
+            _, ref = target.rsplit("@", 1)
+            if not FULL_COMMIT_SHA_RE.fullmatch(ref):
+                errors.append(
+                    f"{workflow.relative_to(root)}:{number}: "
+                    f"action is not pinned to a full commit SHA: {target}"
+                )
+
+    return errors
+
+
 def validate_evals(root: Path) -> list[str]:
     cases_path = root / "evals" / "cases.json"
     schema_path = root / "evals" / "schema.json"
@@ -226,6 +277,7 @@ def validate_repository(root: Path = ROOT) -> list[str]:
         errors.extend(validate_version(root))
     if (root / "evals" / "cases.json").exists() and (root / "evals" / "schema.json").exists():
         errors.extend(validate_evals(root))
+    errors.extend(validate_workflow_action_pins(root))
     errors.extend(validate_markdown_links(root))
     return errors
 
