@@ -68,7 +68,10 @@ The workflow:
 2. runs the full validation suite,
 3. creates the deterministic distribution archive,
 4. extracts release notes from `CHANGELOG.md`,
-5. publishes the ZIP and SHA-256 checksum to the GitHub Release.
+5. creates the GitHub Release when it does not exist, or reconciles an existing Release,
+6. publishes or replaces the ZIP and SHA-256 checksum for that immutable tag.
+
+Release publication is intentionally rerunnable. If the GitHub Release object already exists, the workflow updates its generated title and notes and uploads the expected assets with replacement enabled. A manually or partially created Release therefore does not require moving or recreating the tag.
 
 ## Version selection
 
@@ -76,6 +79,10 @@ The workflow:
 - **Minor**: backward-compatible workflows, references, validation, or distribution features.
 - **Major**: incompatible changes to the skill contract, routing semantics, required runtime assumptions, or packaged layout.
 
-## Rollback
+## Recovery
 
-Published tags are immutable. If a release is defective, fix forward with a new patch release. If a GitHub Release needs to be hidden while a fix is prepared, do not rewrite the tag or archive under the same version.
+Published tags are immutable. Never repair a release by moving or reusing its tag.
+
+If publication fails after the tag exists, preserve the tag and fix the publication path. The release workflow is designed to reconcile an already-created GitHub Release and replace the expected archive and checksum on a rerun.
+
+If a release artifact itself is defective, fix forward with a new patch release rather than rebuilding different source content under the same version.

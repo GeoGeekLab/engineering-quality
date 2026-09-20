@@ -36,8 +36,28 @@ jobs:
       - name: Generate release notes
         run: python scripts/release_notes.py --output dist/RELEASE_NOTES.md
 
-      - name: Publish GitHub Release
+      - name: Publish or reconcile GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${GITHUB_REF_NAME}"             dist/engineering-quality-*.zip             dist/engineering-quality-*.zip.sha256             --verify-tag             --title "${GITHUB_REF_NAME} — Engineering Quality"             --notes-file dist/RELEASE_NOTES.md
+          set -euo pipefail
+
+          title="${GITHUB_REF_NAME} — Engineering Quality"
+
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release edit "${GITHUB_REF_NAME}" \
+              --title "${title}" \
+              --notes-file dist/RELEASE_NOTES.md
+
+            gh release upload "${GITHUB_REF_NAME}" \
+              dist/engineering-quality-*.zip \
+              dist/engineering-quality-*.zip.sha256 \
+              --clobber
+          else
+            gh release create "${GITHUB_REF_NAME}" \
+              dist/engineering-quality-*.zip \
+              dist/engineering-quality-*.zip.sha256 \
+              --verify-tag \
+              --title "${title}" \
+              --notes-file dist/RELEASE_NOTES.md
+          fi

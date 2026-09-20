@@ -22,6 +22,30 @@ def _workflow_contains_any(text: str, candidates: tuple[str, ...]) -> bool:
     return any(candidate in text for candidate in candidates)
 
 
+def validate_release_workflow(text: str) -> list[str]:
+    errors: list[str] = []
+    requirements = (
+        ("release validation", ("scripts/release_check.py",)),
+        ("package build", ("scripts/package_skill.py", "make package")),
+        ("release notes", ("scripts/release_notes.py",)),
+    )
+    for label, candidates in requirements:
+        if not _workflow_contains_any(text, candidates):
+            errors.append(f"release workflow has no {label} step")
+
+    rerun_requirements = (
+        ("existing-release detection", "gh release view"),
+        ("existing-release metadata reconciliation", "gh release edit"),
+        ("existing-release asset reconciliation", "gh release upload"),
+        ("asset replacement for safe reruns", "--clobber"),
+    )
+    for label, marker in rerun_requirements:
+        if marker not in text:
+            errors.append(f"release workflow has no {label}")
+
+    return errors
+
+
 def check_release(root: Path = ROOT, tag: str | None = None) -> list[str]:
     errors = validate_skill.validate_repository(root)
     version = read_version(root)
@@ -42,14 +66,7 @@ def check_release(root: Path = ROOT, tag: str | None = None) -> list[str]:
         errors.append("missing .github/workflows/release.yml")
     else:
         text = workflow.read_text(encoding="utf-8")
-        requirements = (
-            ("release validation", ("scripts/release_check.py",)),
-            ("package build", ("scripts/package_skill.py", "make package")),
-            ("release notes", ("scripts/release_notes.py",)),
-        )
-        for label, candidates in requirements:
-            if not _workflow_contains_any(text, candidates):
-                errors.append(f"release workflow has no {label} step")
+        errors.extend(validate_release_workflow(text))
 
     errors.extend(package_skill.reproducibility_check(root))
     return errors
