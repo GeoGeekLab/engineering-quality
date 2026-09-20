@@ -178,7 +178,7 @@ claude --bare --permission-mode auto --permission-prompts none \
 
 Claude Code's current non-interactive mode accepts environment authentication such as `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, or `CLAUDE_CODE_OAUTH_TOKEN`. Other provider-specific variables can be forwarded individually when required. The adapter creates an isolated temporary `HOME` and `CLAUDE_CONFIG_DIR`, so a behavioral run does not silently consume the evaluator's ordinary saved Claude login or personal configuration.
 
-The adapters print the installed host CLI version into captured stderr so a real evaluation result retains version evidence. The runner never forwards unrelated host secrets by default.
+The adapters print the installed host CLI version into captured stderr so a real evaluation result retains version evidence. They also accept `--model <model-id>`; use an explicit model for publishable comparisons rather than relying on a host default that may change over time. The runner never forwards unrelated host secrets by default, and the JSON report records only the names of explicitly forwarded environment variables, never their values.
 
 ## Evaluation integrity
 
