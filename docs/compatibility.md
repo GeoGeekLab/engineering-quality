@@ -120,9 +120,9 @@ The `skills` CLI from Vercel Labs remains a useful cross-agent convenience, but 
 Optional examples:
 
 ```bash
-npx skills add GeoGeekLab/engineering-quality
-npx skills add GeoGeekLab/engineering-quality -g -a codex
-npx skills add GeoGeekLab/engineering-quality -g -a claude-code
+npx -y skills@1.7.0 add GeoGeekLab/engineering-quality
+npx -y skills@1.7.0 add GeoGeekLab/engineering-quality -g -a codex
+npx -y skills@1.7.0 add GeoGeekLab/engineering-quality -g -a claude-code
 ```
 
 Do not describe `npx skills` as the preferred OpenAI or Anthropic installation path.
