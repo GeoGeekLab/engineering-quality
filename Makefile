@@ -1,9 +1,12 @@
 PYTHON ?= python3
 
-.PHONY: check validate test compile package-check release-check package clean
+.PHONY: check validate eval-validate test compile package-check release-check package clean
 
 validate:
 	$(PYTHON) scripts/validate_skill.py
+
+eval-validate:
+	$(PYTHON) scripts/run_evals.py --validate-only
 
 test:
 	$(PYTHON) -m unittest discover -s tests -v
@@ -24,4 +27,4 @@ clean:
 	rm -rf dist
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +
 
-check: validate compile test package-check release-check
+check: validate eval-validate compile test package-check release-check
