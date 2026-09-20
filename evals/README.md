@@ -82,6 +82,8 @@ Available command placeholders:
 - `{workspace}`
 - `{skill}`
 - `{case_id}`
+- `{repo}`
+- `{python}`
 
 The same values are exported as:
 
@@ -91,6 +93,40 @@ The same values are exported as:
 - `EQ_EVAL_CASE_ID`
 
 Use `--case <id>` repeatedly to run a subset.
+
+## Vendor-native adapters
+
+The repository includes `scripts/host_eval_adapter.py` for current Codex and Claude Code CLI paths.
+
+Codex:
+
+```bash
+python scripts/run_evals.py \
+  --agent-command '{python} {repo}/scripts/host_eval_adapter.py codex' \
+  --adapter-label codex-current \
+  --allow-workspace-execution \
+  --output eval-results/codex.json
+```
+
+The adapter installs the staged Skill into an isolated temporary user Skill directory and calls `codex exec` with an ephemeral workspace-write sandbox.
+
+Claude Code:
+
+```bash
+python scripts/run_evals.py \
+  --agent-command '{python} {repo}/scripts/host_eval_adapter.py claude-code' \
+  --adapter-label claude-code-current \
+  --allow-workspace-execution \
+  --output eval-results/claude-code.json
+```
+
+The Claude adapter uses non-interactive print mode with `--bare`, auto permissions, no prompt responder, no session persistence, and an explicit staged Skill directory.
+
+Adapter unit tests validate command construction and staged-skill handling. Those tests are **not** real model runs. A host is behaviorally verified only after an actual authenticated CLI run produces a saved report.
+
+Each case receives a fresh runtime Skill staging directory. The harness hashes it before and after the agent exits. Any mutation produces a failing `skill_payload_integrity` check, so one case cannot rewrite the Skill used by later cases.
+
+See [host compatibility](../docs/compatibility.md) for the dated vendor documentation basis.
 
 ## Execution boundary
 
