@@ -123,7 +123,7 @@ Availability remains subject to workspace settings and current product rollout. 
 The third-party `skills` CLI can still be convenient:
 
 ```bash
-npx skills add GeoGeekLab/engineering-quality
+npx -y skills@1.7.0 add GeoGeekLab/engineering-quality
 ```
 
 It is documented as a convenience rather than the vendor-native authority for OpenAI or Anthropic installation.
