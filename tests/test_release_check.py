@@ -80,6 +80,12 @@ class ReleaseCheckTests(unittest.TestCase):
         self.assertNotIn("--verify-tag", workflow)
         self.assertIn("Create release tag from protected main", workflow)
 
+    def test_release_publication_has_explicit_repository_context(self) -> None:
+        workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("GH_REPO: ${{ github.repository }}", workflow)
+
     def test_release_notes_extract_current_version(self) -> None:
         version = release_check.read_version(ROOT)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
