@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+- Add Evi (伊维), a clean British Shorthair mascot identity system for project branding, and restore automatic cleanup of successful release trigger branches.
+
 ## 1.2.2 - 2026-09-20
 
 - Give GitHub CLI an explicit repository context in the checkout-free publish job so Release creation no longer depends on local Git repository discovery.
