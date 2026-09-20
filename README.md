@@ -294,7 +294,8 @@ workflows/                  feature / bug-fix / refactor / review / debug / perf
 references/                 verification / testing / security / compatibility / concurrency
 scripts/                    validation / packaging / project checks / eval adapters
 evals/                      executable behavioral fixtures + result schema
-docs/                       compatibility / release / governance / distribution
+docs/                       compatibility / release / governance / distribution / mascot
+assets/mascot/              Evi mascot + identity-system artwork
 .github/                    CI / release / issue forms / CODEOWNERS
 ```
 
@@ -311,6 +312,18 @@ The release ZIP intentionally contains the runtime Skill payload rather than rep
 - OpenAI Plugin Directory and Claude marketplace publication are **not** claimed until those external review/publication steps actually happen.
 
 See [compatibility](docs/compatibility.md), [release engineering](docs/release.md), [governance](GOVERNANCE.md), [security](SECURITY.md), and [distribution](docs/distribution.md).
+
+## Mascot: Evi
+
+<div align="center">
+  <img src="assets/mascot/evi.jpg" alt="Evi, the engineering-quality British Shorthair mascot" width="300">
+</div>
+
+**Evi (伊维)** is the engineering-quality mascot: a clean silver-blue British Shorthair kitten designed around the same traits the project values — careful, trustworthy, gentle, smart, and calm.
+
+The canonical character is deliberately simple: **no badge, collar, clothes, tools, magnifying glass, ID card, or engineering props attached to the cat**. The mascot should stay recognizably Evi even when removed from all technical context.
+
+See <a href="docs/mascot.md">the mascot identity guide</a> and <a href="assets/mascot/evi-identity-system.jpg">the complete identity-system sheet</a>.
 
 ## Contributing
 
