@@ -1,0 +1,66 @@
+name: Host compatibility report
+description: Report installation, packaging, invocation, or behavioral compatibility problems with a supported agent host.
+title: "[Compatibility] "
+body:
+  - type: dropdown
+    id: host
+    attributes:
+      label: Host
+      options:
+        - Codex
+        - ChatGPT
+        - Claude Code
+        - Other Agent Skills host
+    validations:
+      required: true
+  - type: input
+    id: host-version
+    attributes:
+      label: Host or CLI version
+      placeholder: Exact version when available.
+    validations:
+      required: true
+  - type: input
+    id: repo-version
+    attributes:
+      label: engineering-quality version
+      placeholder: Release version or commit SHA.
+    validations:
+      required: true
+  - type: textarea
+    id: installation
+    attributes:
+      label: Installation or loading path
+      description: State how the skill/plugin was installed or loaded.
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should have happened according to the documented compatibility contract?
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Include concise logs or a behavioral-eval result when possible. Remove credentials and private data.
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Submission checks
+      options:
+        - label: I checked docs/compatibility.md and its last-verified date.
+          required: true
+        - label: This report does not contain secrets or private vulnerability details.
+          required: true

@@ -429,7 +429,7 @@ Can we write an eval that catches its absence?
 
 If the answer is fuzzy, the rule probably is too.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution mechanics, [GOVERNANCE.md](GOVERNANCE.md) for merge and maintainer policy, [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for participation expectations, and [SECURITY.md](SECURITY.md) for private vulnerability reporting.
 
 ## License
 

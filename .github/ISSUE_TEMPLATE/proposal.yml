@@ -1,0 +1,52 @@
+name: Engineering-quality proposal
+description: Propose a rule, workflow, reference, evaluation case, or repository-quality improvement.
+title: "[Proposal] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Proposals should address a concrete failure mode or maintenance problem rather than a generic style preference.
+  - type: textarea
+    id: failure-mode
+    attributes:
+      label: Failure mode
+      description: What can fail or become materially harder without this change?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Describe the smallest coherent change.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Applicability and limits
+      description: When should this guidance apply, and when should it not?
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence or source material
+      description: Link primary sources, standards, reproductions, or examples when available.
+    validations:
+      required: false
+  - type: textarea
+    id: evaluation
+    attributes:
+      label: How should this be evaluated?
+      description: Describe a deterministic check or behavioral eval that would distinguish the intended behavior.
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Submission checks
+      options:
+        - label: I checked whether an existing workflow, reference, or issue already covers this proposal.
+          required: true
+        - label: The proposal is not based only on personal style preference.
+          required: true

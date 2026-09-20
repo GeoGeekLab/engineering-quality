@@ -71,6 +71,38 @@ class ValidateSkillTests(unittest.TestCase):
             self.assertEqual([], validate_skill.validate_workflow_action_pins(root))
 
 
+    def test_governance_validation_requires_security_execution_boundary(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            security = root / "SECURITY.md"
+            security.write_text("# Security\n", encoding="utf-8")
+
+            errors = validate_skill.validate_governance(root)
+
+            self.assertTrue(any("--trust-repository" in error for error in errors))
+            self.assertTrue(any("--allow-workspace-execution" in error for error in errors))
+
+    def test_governance_validation_tracks_required_ci_job_names(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            workflow = root / ".github" / "workflows" / "ci.yml"
+            workflow.parent.mkdir(parents=True)
+            workflow.write_text(
+                "jobs:\n"
+                "  quality:\n"
+                "    strategy:\n"
+                "      matrix:\n"
+                "        python-version:\n"
+                '          - "3.10"\n'
+                '          - "3.12"\n'
+                "  package:\n",
+                encoding="utf-8",
+            )
+
+            errors = validate_skill.validate_governance(root)
+
+            self.assertTrue(any('3.14' in error for error in errors))
+
     def test_claude_plugin_version_must_match_version_file(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

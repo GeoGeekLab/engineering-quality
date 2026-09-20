@@ -1,0 +1,57 @@
+name: Bug report
+description: Report incorrect behavior, a regression, or a broken repository contract.
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Report observable failures with enough evidence to reproduce them. Security vulnerabilities must not be reported here; follow SECURITY.md instead.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What observable behavior is wrong?
+      placeholder: Describe the failure and its impact.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Provide the smallest reproducible steps, fixture, or command sequence.
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What contract or behavior should hold instead?
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include relevant OS, Python version, host/agent version, repository version or commit, and installation path.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Paste concise logs, failing checks, or links to public evidence. Remove secrets and sensitive data.
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Submission checks
+      options:
+        - label: I searched existing issues for the same failure.
+          required: true
+        - label: This report does not contain credentials, private data, or undisclosed vulnerability details.
+          required: true
