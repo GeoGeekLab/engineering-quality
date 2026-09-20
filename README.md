@@ -225,6 +225,18 @@ The explicit trust flag is intentional. Running checks can access inherited envi
 
 The helper recognizes common project signals across Python, JavaScript/TypeScript, Go, Rust, JVM projects, .NET, Swift, Dart/Flutter, Make-based projects, and repository-defined scripts.
 
+### Run behavioral evaluations
+
+The repository includes 14 executable miniature-repository scenarios and a host-neutral agent adapter runner:
+
+```bash
+python scripts/run_evals.py --validate-only
+```
+
+A real behavioral run requires an external coding-agent adapter. The runner records the agent transcript and diff, then evaluates deterministic invariants such as tests, compatibility behavior, generated-code consistency, repeated flaky-test checks, and change scope.
+
+CI validates the harness and fixtures; it does **not** claim that a real model passed the suite. See [evals/README.md](evals/README.md) for the evidence model and execution boundary.
+
 ### Validate this repository
 
 Requires Python 3.10 or newer.
