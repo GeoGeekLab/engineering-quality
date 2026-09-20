@@ -32,6 +32,8 @@ A fake or deterministic adapter used by unit tests proves only that the harness 
 
 The agent receives the task and repository fixture. The qualitative rubric is not injected into the agent prompt by the runner.
 
+The skill itself is also staged through the same runtime payload contract used by packaging. The agent sees the staged `SKILL.md`, references, workflows, and runtime helper files, but not this repository's `evals/`, `tests/`, CI files, or evaluation runner source. This prevents a capable agent from simply reading the hidden rubric through the source checkout.
+
 `schema.json` documents the case format. `result-schema.json` documents the machine-readable report envelope.
 
 ## Deterministic checks
