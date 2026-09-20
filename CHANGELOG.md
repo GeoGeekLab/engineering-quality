@@ -14,6 +14,7 @@ All notable changes to this project are documented here.
 - Replace prose-only behavioral eval fixtures with an executable miniature-repository harness, deterministic post-agent checks, hidden-rubric runtime staging, machine-readable reports, and CI self-tests that do not masquerade as real-model results.
 - Align Codex, ChatGPT, and Claude Code compatibility guidance with vendor documentation verified on 2026-09-20; add packaged OpenAI metadata and a version-locked Claude Code plugin manifest.
 - Add native Codex and Claude Code behavioral-eval adapters with per-case skill integrity checks, isolated homes, minimal environments, and explicit credential forwarding.
+- Add repository governance and community infrastructure: CODEOWNERS, Code of Conduct, structured issue forms, explicit security disclosure routing, merge/ruleset policy, and validation that keeps governance requirements synchronized with CI.
 
 ## 1.1.0 - 2026-09-19
 
