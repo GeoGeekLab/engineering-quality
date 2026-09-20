@@ -4,17 +4,16 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
-- Make tagged-release publication rerunnable when a GitHub Release already exists, including metadata reconciliation and replacement of expected distribution assets.
-- Add a regression check that prevents returning to a create-only release workflow.
-- Pin GitHub Actions to immutable commit SHAs and enforce that policy in repository validation.
-- Add Dependabot updates for GitHub Actions, bounded workflow execution, and concurrency controls.
-- Split release construction from privileged publication and add signed artifact provenance with in-workflow verification.
-- Upgrade artifact transport to current GitHub Actions releases, verify an upload/download round trip in CI, and use the current `actions/attest` provenance action.
-- Make project-check discovery execution-safe by default: running discovered checks now requires explicit repository trust, with regression coverage and trust-boundary guidance.
-- Replace prose-only behavioral eval fixtures with an executable miniature-repository harness, deterministic post-agent checks, hidden-rubric runtime staging, machine-readable reports, and CI self-tests that do not masquerade as real-model results.
-- Align Codex, ChatGPT, and Claude Code compatibility guidance with vendor documentation verified on 2026-09-20; add packaged OpenAI metadata and a version-locked Claude Code plugin manifest.
-- Add native Codex and Claude Code behavioral-eval adapters with per-case skill integrity checks, isolated homes, minimal environments, and explicit credential forwarding.
-- Add repository governance and community infrastructure: CODEOWNERS, Code of Conduct, structured issue forms, explicit security disclosure routing, merge/ruleset policy, and validation that keeps governance requirements synchronized with CI.
+## 1.2.0 - 2026-09-20
+
+- Repair the release trust chain and make GitHub Release publication safely rerunnable without moving published tags.
+- Harden the GitHub Actions supply chain with immutable action SHAs, Dependabot updates, bounded execution, least-privilege release jobs, artifact round-trip verification, and signed build provenance.
+- Make repository-check execution explicit about trust: discovery remains read-only, while execution requires `--run --trust-repository`.
+- Replace prose-only eval fixtures with 14 executable miniature-repository scenarios, deterministic post-agent checks, hidden-rubric staging, machine-readable results, and strict evidence semantics.
+- Add current Codex, ChatGPT, and Claude Code metadata/guidance plus native Codex and Claude Code eval adapters with credential, home-directory, and Skill-integrity isolation.
+- Add repository governance: CODEOWNERS, structured Issue Forms, Code of Conduct, security disclosure routing, active branch/tag rulesets, required CI checks, Discussions, and squash-only merge policy.
+- Rework the README around quick start, concrete before/after behavior, searchable use cases, and inspectable evidence; add a maintained distribution/discovery playbook.
+- Add a guarded `release/v<VERSION>` automation path that can create the immutable release tag only from the exact current `main` commit and removes its trigger branch after successful publication.
 
 ## 1.1.0 - 2026-09-19
 

@@ -1,6 +1,6 @@
 # Release engineering
 
-Releases are versioned with Semantic Versioning and are expected to be reproducible from a tagged commit.
+Releases are versioned with Semantic Versioning and are expected to be reproducible from a protected `main` commit.
 
 ## Version contract
 
@@ -12,13 +12,13 @@ A release tag must be exactly:
 v<VERSION>
 ```
 
-For example, `VERSION=1.1.0` requires tag `v1.1.0`.
+For example, `VERSION=1.2.0` requires tag `v1.2.0`.
 
-The same version must have a dated section in `CHANGELOG.md`.
+The same version must have a dated section in `CHANGELOG.md`. Host manifests that carry a version, such as `.claude-plugin/plugin.json`, must match `VERSION`.
 
 ## Release gates
 
-Before tagging:
+Before release:
 
 ```bash
 make check
@@ -27,14 +27,14 @@ make package
 
 `make check` validates:
 
-- skill metadata and required repository structure,
-- local Markdown links,
-- GitHub Actions dependency pinning,
+- Skill and host metadata,
+- governance and local Markdown links,
+- immutable GitHub Actions dependencies,
 - version and changelog consistency,
-- evaluation fixtures,
+- executable evaluation fixtures,
 - Python compilation and unit tests,
 - deterministic package construction,
-- release-readiness invariants.
+- release-workflow invariants.
 
 `make package` creates:
 
@@ -44,11 +44,33 @@ dist/
 └── engineering-quality-<version>.zip.sha256
 ```
 
-The archive contains a `MANIFEST.sha256` file covering every packaged payload file.
+The archive contains a `MANIFEST.sha256` covering every packaged payload file.
 
-## Tagging
+## Preferred release path
 
-After the release commit is merged to `main`:
+After the release commit is merged to protected `main`, create a release trigger branch that points **exactly** at the current `main` commit:
+
+```bash
+git checkout main
+git pull --ff-only
+git push origin HEAD:"release/v$(cat VERSION)"
+```
+
+Pushing `release/v<VERSION>` triggers `.github/workflows/release.yml`.
+
+The workflow refuses the release unless:
+
+- the branch name exactly matches `release/v<VERSION>`,
+- the branch commit exactly matches the current remote `main`,
+- repository and package release checks pass.
+
+Only after those gates pass does the privileged publish job create the immutable `v<VERSION>` tag at that commit.
+
+After successful publication, the workflow deletes the temporary release trigger branch. The immutable tag and GitHub Release remain as the release history.
+
+## Manual tag path
+
+A manually created matching tag remains supported:
 
 ```bash
 git checkout main
@@ -57,62 +79,60 @@ git tag -a "v$(cat VERSION)" -m "engineering-quality v$(cat VERSION)"
 git push origin "v$(cat VERSION)"
 ```
 
+A matching `v*.*.*` tag triggers the same build, attestation, and publication path.
+
 Do not move or reuse a published release tag.
 
 ## Automated release
 
-Pushing a matching `v*.*.*` tag triggers `.github/workflows/release.yml`.
-
 The workflow separates construction from publication:
 
-1. a read-only build job checks that the tag matches `VERSION`,
-2. runs the full validation suite,
-3. creates and checksum-verifies the distribution archive,
-4. generates release notes and stages the release payload,
-5. a separate publish job downloads and re-verifies that payload,
-6. uses GitHub's `actions/attest` action to generate signed SLSA build provenance for the ZIP and checksum,
-7. verifies the ZIP attestation with GitHub CLI,
-8. creates the GitHub Release when it does not exist, or reconciles an existing Release,
-9. publishes or replaces the ZIP and SHA-256 checksum for that immutable tag.
+1. resolve the expected tag from `VERSION`,
+2. for a release branch, prove that it points exactly at current `main`,
+3. run the full repository and release validation suite in a read-only build job,
+4. build and checksum-verify the distribution,
+5. generate release notes and stage the payload through GitHub Actions artifacts,
+6. in the privileged publish job, create the version tag when the guarded release-branch path is used,
+7. download and re-verify the staged payload,
+8. use GitHub's `actions/attest` action to generate signed build provenance for the ZIP and checksum,
+9. verify the ZIP attestation with GitHub CLI,
+10. create the GitHub Release when absent or reconcile its metadata/assets when it already exists,
+11. remove the temporary release trigger branch after a successful branch-triggered release.
 
-Release publication is intentionally rerunnable. If the GitHub Release object already exists, the workflow updates its generated title and notes and uploads the expected assets with replacement enabled. A manually or partially created Release therefore does not require moving or recreating the tag.
+Publication is intentionally rerunnable. If the GitHub Release object already exists, the workflow updates its generated title and notes and replaces the expected assets. A manually or partially created Release therefore does not require moving or recreating the tag.
 
 ## Supply-chain controls
 
-GitHub Actions dependencies are pinned to complete commit SHAs rather than mutable version tags. A repository validation check rejects non-SHA action references. Human-readable exact-version comments remain next to the pins, and Dependabot is configured to propose GitHub Actions updates.
+GitHub Actions dependencies are pinned to complete commit SHAs rather than mutable version tags. Repository validation rejects non-SHA external action references, and Dependabot proposes GitHub Actions updates.
 
-CI exercises the artifact transport path, not just its configuration: after building and verifying the package, it uploads the distribution, removes the local copy, downloads the workflow artifact again, and re-verifies the SHA-256 sidecar. This catches artifact upload/download regressions before release.
+CI exercises the artifact transport path rather than merely validating YAML: it builds and verifies the package, uploads it, removes the local distribution, downloads the artifact again, and re-verifies the SHA-256 sidecar.
 
-The release build job has read-only repository access. Release write access, attestation storage permission, artifact metadata permission, and the OIDC token needed for Sigstore-backed provenance signing are granted only to the publish job. Jobs also use explicit timeouts, and workflow concurrency prevents stale CI runs or overlapping publication for the same ref.
+The release build job has read-only repository access. Release write access, attestation storage permission, artifact metadata permission, and the OIDC token used for Sigstore-backed provenance signing exist only in the publish job.
 
 Release artifacts carry two complementary integrity mechanisms:
 
-- `.zip.sha256` verifies the downloaded archive bytes,
-- GitHub artifact attestations bind the release artifact digest to the GitHub Actions build identity and workflow provenance.
+- `.zip.sha256` verifies the archive bytes,
+- GitHub artifact attestations bind the artifact digest to GitHub Actions provenance.
 
-After downloading a release archive, provenance can be checked with:
+After downloading a release archive:
 
 ```bash
+sha256sum -c engineering-quality-<version>.zip.sha256
+
 gh attestation verify engineering-quality-<version>.zip \
   --repo GeoGeekLab/engineering-quality
 ```
 
-The checksum should still be verified independently:
-
-```bash
-sha256sum -c engineering-quality-<version>.zip.sha256
-```
-
 ## Version selection
 
-- **Patch**: corrections that preserve the public skill contract.
-- **Minor**: backward-compatible workflows, references, validation, or distribution features.
-- **Major**: incompatible changes to the skill contract, routing semantics, required runtime assumptions, or packaged layout.
+- **Patch**: corrections that preserve the public Skill contract.
+- **Minor**: backward-compatible workflows, references, validation, distribution, or evaluation features.
+- **Major**: incompatible changes to the Skill contract, routing semantics, required runtime assumptions, or packaged layout.
 
 ## Recovery
 
-Published tags are immutable. Never repair a release by moving or reusing its tag.
+Published `v*.*.*` tags are protected by the repository's active tag ruleset. Never repair a release by moving or reusing its tag.
 
-If publication fails after the tag exists, preserve the tag and fix the publication path. The release workflow is designed to reconcile an already-created GitHub Release and replace the expected archive and checksum on a rerun.
+If publication fails after the tag exists, preserve the tag and fix the publication path. The release workflow can reconcile an existing GitHub Release and replace the expected archive and checksum on a rerun.
 
-If a release artifact itself is defective, fix forward with a new patch release rather than rebuilding different source content under the same version.
+If an artifact itself is defective, fix forward with a new patch release rather than rebuilding different source content under the same version.

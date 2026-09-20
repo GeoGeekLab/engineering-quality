@@ -4,12 +4,14 @@ on:
   push:
     tags:
       - "v*.*.*"
+    branches:
+      - "release/v*.*.*"
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -18,6 +20,8 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+    outputs:
+      release-tag: ${{ steps.release.outputs.tag }}
 
     steps:
       - name: Checkout
@@ -28,8 +32,41 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Verify tag and repository
-        run: python scripts/release_check.py --tag "${GITHUB_REF_NAME}"
+      - name: Resolve release source
+        id: release
+        run: |
+          set -euo pipefail
+
+          version="$(cat VERSION)"
+          tag="v${version}"
+
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            if [[ "${GITHUB_REF_NAME}" != "${tag}" ]]; then
+              echo "::error::Tag ${GITHUB_REF_NAME} does not match VERSION ${version}"
+              exit 1
+            fi
+          elif [[ "${GITHUB_REF_TYPE}" == "branch" ]]; then
+            expected_branch="release/${tag}"
+            if [[ "${GITHUB_REF_NAME}" != "${expected_branch}" ]]; then
+              echo "::error::Release branch must be ${expected_branch}"
+              exit 1
+            fi
+
+            git fetch --no-tags origin main
+            main_sha="$(git rev-parse origin/main)"
+            if [[ "${GITHUB_SHA}" != "${main_sha}" ]]; then
+              echo "::error::Release branch must point exactly at current main (${main_sha})"
+              exit 1
+            fi
+          else
+            echo "::error::Unsupported release ref type: ${GITHUB_REF_TYPE}"
+            exit 1
+          fi
+
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+
+      - name: Verify release and repository
+        run: python scripts/release_check.py --tag "${{ steps.release.outputs.tag }}"
 
       - name: Run full checks
         run: make check
@@ -62,6 +99,28 @@ jobs:
       artifact-metadata: write
 
     steps:
+      - name: Create release tag from protected main
+        if: github.ref_type == 'branch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.build.outputs.release-tag }}
+        run: |
+          set -euo pipefail
+
+          existing="$(
+            gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}"               --jq '.object.sha' 2>/dev/null || true
+          )"
+
+          if [[ -n "${existing}" ]]; then
+            if [[ "${existing}" != "${GITHUB_SHA}" ]]; then
+              echo "::error::Existing tag ${RELEASE_TAG} points to ${existing}, expected ${GITHUB_SHA}"
+              exit 1
+            fi
+            echo "Tag ${RELEASE_TAG} already points to the release commit."
+          else
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs"               -f ref="refs/tags/${RELEASE_TAG}"               -f sha="${GITHUB_SHA}" >/dev/null
+          fi
+
       - name: Download release payload
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -86,25 +145,16 @@ jobs:
       - name: Publish or reconcile GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.build.outputs.release-tag }}
         run: |
           set -euo pipefail
 
-          title="${GITHUB_REF_NAME} — Engineering Quality"
+          title="${RELEASE_TAG} — Engineering Quality"
 
-          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
-            gh release edit "${GITHUB_REF_NAME}" \
-              --title "${title}" \
-              --notes-file dist/RELEASE_NOTES.md
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            gh release edit "${RELEASE_TAG}"               --title "${title}"               --notes-file dist/RELEASE_NOTES.md
 
-            gh release upload "${GITHUB_REF_NAME}" \
-              dist/engineering-quality-*.zip \
-              dist/engineering-quality-*.zip.sha256 \
-              --clobber
+            gh release upload "${RELEASE_TAG}"               dist/engineering-quality-*.zip               dist/engineering-quality-*.zip.sha256               --clobber
           else
-            gh release create "${GITHUB_REF_NAME}" \
-              dist/engineering-quality-*.zip \
-              dist/engineering-quality-*.zip.sha256 \
-              --verify-tag \
-              --title "${title}" \
-              --notes-file dist/RELEASE_NOTES.md
+            gh release create "${RELEASE_TAG}"               dist/engineering-quality-*.zip               dist/engineering-quality-*.zip.sha256               --verify-tag               --title "${title}"               --notes-file dist/RELEASE_NOTES.md
           fi
