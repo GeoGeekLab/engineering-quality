@@ -86,6 +86,13 @@ class ReleaseCheckTests(unittest.TestCase):
         )
         self.assertIn("GH_REPO: ${{ github.repository }}", workflow)
 
+    def test_release_workflow_removes_successful_trigger_branch(self) -> None:
+        workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("Remove release trigger branch", workflow)
+        self.assertIn("git/refs/heads/${GITHUB_REF_NAME}", workflow)
+
     def test_release_notes_extract_current_version(self) -> None:
         version = release_check.read_version(ROOT)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
