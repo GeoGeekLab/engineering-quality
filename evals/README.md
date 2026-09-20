@@ -134,9 +134,11 @@ See [host compatibility](../docs/compatibility.md) for the dated vendor document
 
 The agent adapter is a command chosen by the evaluator and may itself execute code.
 
+The adapter does not inherit the evaluator's complete environment. By default it receives only basic process/runtime variables plus the `EQ_EVAL_*` case context. Credentials and provider configuration must be forwarded deliberately with repeatable `--pass-env NAME` flags. This keeps unrelated API keys, cloud credentials, and local configuration out of the evaluated process.
+
 After the agent exits, some deterministic checks may execute code from the agent-modified workspace. That is disabled unless `--allow-workspace-execution` is supplied. The flag acknowledges this execution boundary; it does not make generated code safe.
 
-Command checks receive a reduced environment containing basic process/runtime variables such as `PATH`, temporary-directory settings, locale, and home-directory information. Arbitrary host environment variables are not forwarded to those checks. Filesystem and network isolation still require an external sandbox, container, VM, or restricted runner when the threat model requires it.
+Command checks receive an even narrower environment and a fresh temporary `HOME` / `USERPROFILE`, rather than the evaluator's real home directory. Filesystem and network isolation still require an external sandbox, container, VM, or restricted runner when the threat model requires it.
 
 ## Result semantics
 
