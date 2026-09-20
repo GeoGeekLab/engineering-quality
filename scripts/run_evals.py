@@ -496,7 +496,7 @@ def evaluate_case(
     case: dict[str, Any],
     *,
     agent_command: str,
-    skill: Path,
+    skill_root: Path,
     agent_timeout: int,
     check_timeout: int,
     allow_workspace_execution: bool,
@@ -519,6 +519,12 @@ def evaluate_case(
         workspace = Path(temp.name)
         cleanup = temp.cleanup
 
+    skill_temp = tempfile.TemporaryDirectory(
+        prefix=f"engineering-quality-{case['id']}-skill-"
+    )
+    staged_skill = stage_skill_runtime(skill_root, Path(skill_temp.name))
+    skill_before = snapshot_workspace(staged_skill.parent)
+
     try:
         materialize_fixture(case, workspace)
         initialize_git(workspace)
@@ -528,10 +534,11 @@ def evaluate_case(
             agent_command,
             case=case,
             workspace=workspace,
-            skill=skill,
+            skill=staged_skill,
             timeout=agent_timeout,
         )
         after = snapshot_workspace(workspace)
+        skill_after = snapshot_workspace(staged_skill.parent)
         final_output = f"{agent['stdout']}\n{agent['stderr']}".strip()
 
         checks = [
@@ -546,6 +553,15 @@ def evaluate_case(
             )
             for check in case["checks"]
         ]
+
+        skill_changes = changed_files(skill_before, skill_after)
+        checks.append(
+            {
+                "type": "skill_payload_integrity",
+                "status": "passed" if not skill_changes else "failed",
+                "changed_files": skill_changes,
+            }
+        )
 
         statuses = {check["status"] for check in checks}
         if agent["exit_code"] != 0 or "failed" in statuses:
@@ -577,6 +593,7 @@ def evaluate_case(
 
         return result
     finally:
+        skill_temp.cleanup()
         cleanup()
 
 
@@ -715,21 +732,19 @@ def main(argv: list[str] | None = None) -> int:
     if args.workspace_parent:
         args.workspace_parent.mkdir(parents=True, exist_ok=True)
 
-    with tempfile.TemporaryDirectory(prefix="engineering-quality-skill-") as skill_temp:
-        staged_skill = stage_skill_runtime(args.skill_root, Path(skill_temp))
-        results = [
-            evaluate_case(
-                case,
-                agent_command=args.agent_command,
-                skill=staged_skill,
-                agent_timeout=args.agent_timeout,
-                check_timeout=args.check_timeout,
-                allow_workspace_execution=args.allow_workspace_execution,
-                keep_workspace=args.keep_workspaces,
-                workspace_parent=args.workspace_parent,
-            )
-            for case in cases
-        ]
+    results = [
+        evaluate_case(
+            case,
+            agent_command=args.agent_command,
+            skill_root=args.skill_root,
+            agent_timeout=args.agent_timeout,
+            check_timeout=args.check_timeout,
+            allow_workspace_execution=args.allow_workspace_execution,
+            keep_workspace=args.keep_workspaces,
+            workspace_parent=args.workspace_parent,
+        )
+        for case in cases
+    ]
 
     report = build_report(
         results,
