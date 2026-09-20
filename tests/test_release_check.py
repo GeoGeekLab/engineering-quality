@@ -64,7 +64,7 @@ class ReleaseCheckTests(unittest.TestCase):
         version = release_check.read_version(ROOT)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         notes = release_notes.extract_release_notes(changelog, version)
-        self.assertIn("deterministic skill packaging", notes)
+        self.assertIn("signed build provenance", notes)
         self.assertNotIn("## 1.0.0", notes)
 
 
