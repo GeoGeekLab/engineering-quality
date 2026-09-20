@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/GeoGeekLab/engineering-quality/blob/main/evals/result-schema.json",
+  "title": "engineering-quality behavioral evaluation result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "evidence_scope",
+    "agent_command",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "failed",
+        "incomplete"
+      ]
+    },
+    "evidence_scope": {
+      "type": "object",
+      "required": [
+        "harness",
+        "agent_behavior",
+        "deterministic_checks",
+        "qualitative_rubric"
+      ],
+      "properties": {
+        "harness": {
+          "type": "string"
+        },
+        "agent_behavior": {
+          "type": "string"
+        },
+        "deterministic_checks": {
+          "type": "string"
+        },
+        "qualitative_rubric": {
+          "type": "string"
+        }
+      }
+    },
+    "agent_command": {
+      "type": "string"
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "task",
+          "agent",
+          "changed_files",
+          "checks",
+          "rubric"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "passed",
+              "failed",
+              "incomplete"
+            ]
+          },
+          "task": {
+            "type": "string"
+          },
+          "agent": {
+            "type": "object"
+          },
+          "changed_files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "rubric": {
+            "type": "object"
+          },
+          "workspace": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
