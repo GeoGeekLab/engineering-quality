@@ -32,6 +32,18 @@ CHECK_KEYS = {
     "repeat",
     "exit_code",
 }
+ENV_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+BASE_PROCESS_ENV = (
+    "LANG",
+    "LC_ALL",
+    "PATH",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "TMPDIR",
+    "WINDIR",
+)
+
 SUPPORTED_CHECKS = {
     "changed_files_include",
     "changed_files_subset",
@@ -269,6 +281,29 @@ def _format_agent_command(
     return formatted
 
 
+def _isolated_environment(
+    pass_env: tuple[str, ...] = (),
+    *,
+    home: Path | None = None,
+) -> dict[str, str]:
+    env = {
+        key: os.environ[key]
+        for key in BASE_PROCESS_ENV
+        if key in os.environ
+    }
+    for name in pass_env:
+        if not ENV_NAME_RE.fullmatch(name):
+            raise ValueError(f"invalid environment variable name: {name!r}")
+        if name in os.environ:
+            env[name] = os.environ[name]
+
+    if home is not None:
+        env["HOME"] = str(home)
+        env["USERPROFILE"] = str(home)
+
+    return env
+
+
 def run_agent(
     command: str,
     *,
@@ -276,9 +311,10 @@ def run_agent(
     workspace: Path,
     skill: Path,
     timeout: int,
+    pass_env: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     argv = _format_agent_command(command, case=case, workspace=workspace, skill=skill)
-    env = os.environ.copy()
+    env = _isolated_environment(pass_env)
     env.update(
         {
             "EQ_EVAL_CASE_ID": case["id"],
@@ -324,21 +360,6 @@ def _read_optional(path: Path) -> str | None:
         return path.read_text(encoding="utf-8")
     except (OSError, UnicodeError):
         return None
-
-
-def _check_environment() -> dict[str, str]:
-    allowed = (
-        "HOME",
-        "LANG",
-        "LC_ALL",
-        "PATH",
-        "SYSTEMROOT",
-        "TEMP",
-        "TMP",
-        "TMPDIR",
-        "WINDIR",
-    )
-    return {key: os.environ[key] for key in allowed if key in os.environ}
 
 
 def evaluate_check(
@@ -453,34 +474,38 @@ def evaluate_check(
         expected_exit = check.get("exit_code", 0)
         executions: list[dict[str, Any]] = []
         passed = True
-        for _ in range(repeat):
-            try:
-                completed = subprocess.run(
-                    argv,
-                    cwd=workspace,
-                    check=False,
-                    timeout=command_timeout,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                    env=_check_environment(),
-                )
-                execution = {
-                    "exit_code": completed.returncode,
-                    "stdout": completed.stdout,
-                    "stderr": completed.stderr,
-                }
-                if completed.returncode != expected_exit:
+        with tempfile.TemporaryDirectory(
+            prefix="engineering-quality-check-home-"
+        ) as home_directory:
+            check_env = _isolated_environment(home=Path(home_directory))
+            for _ in range(repeat):
+                try:
+                    completed = subprocess.run(
+                        argv,
+                        cwd=workspace,
+                        check=False,
+                        timeout=command_timeout,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                        env=check_env,
+                    )
+                    execution = {
+                        "exit_code": completed.returncode,
+                        "stdout": completed.stdout,
+                        "stderr": completed.stderr,
+                    }
+                    if completed.returncode != expected_exit:
+                        passed = False
+                except subprocess.TimeoutExpired as exc:
+                    execution = {
+                        "exit_code": 124,
+                        "stdout": exc.stdout or "",
+                        "stderr": exc.stderr or "",
+                        "timed_out": True,
+                    }
                     passed = False
-            except subprocess.TimeoutExpired as exc:
-                execution = {
-                    "exit_code": 124,
-                    "stdout": exc.stdout or "",
-                    "stderr": exc.stderr or "",
-                    "timed_out": True,
-                }
-                passed = False
-            executions.append(execution)
+                executions.append(execution)
         result.update(
             {
                 "status": "passed" if passed else "failed",
@@ -504,6 +529,7 @@ def evaluate_case(
     allow_workspace_execution: bool,
     keep_workspace: bool,
     workspace_parent: Path | None,
+    pass_env: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     if keep_workspace:
         workspace = Path(
@@ -538,6 +564,7 @@ def evaluate_case(
             workspace=workspace,
             skill=staged_skill,
             timeout=agent_timeout,
+            pass_env=pass_env,
         )
         after = snapshot_workspace(workspace)
         skill_after = snapshot_workspace(staged_skill.parent)
@@ -662,6 +689,16 @@ def _parser() -> argparse.ArgumentParser:
         help="non-sensitive adapter/model label stored in the report",
     )
     parser.add_argument(
+        "--pass-env",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help=(
+            "forward one named host environment variable to the agent adapter; "
+            "repeat for each credential or provider setting that is explicitly required"
+        ),
+    )
+    parser.add_argument(
         "--skill-root",
         type=Path,
         default=ROOT,
@@ -705,6 +742,13 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.agent_timeout <= 0 or args.check_timeout <= 0:
         parser.error("timeouts must be positive")
+    invalid_env_names = [
+        name for name in args.pass_env if not ENV_NAME_RE.fullmatch(name)
+    ]
+    if invalid_env_names:
+        parser.error(
+            "invalid --pass-env names: " + ", ".join(sorted(set(invalid_env_names)))
+        )
 
     try:
         cases = load_cases(args.cases)
@@ -745,6 +789,7 @@ def main(argv: list[str] | None = None) -> int:
             allow_workspace_execution=args.allow_workspace_execution,
             keep_workspace=args.keep_workspaces,
             workspace_parent=args.workspace_parent,
+            pass_env=tuple(args.pass_env),
         )
         for case in cases
     ]
