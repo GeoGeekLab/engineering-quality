@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -17,7 +19,7 @@ class ProjectChecksTests(unittest.TestCase):
         temp = tempfile.TemporaryDirectory()
         return temp, Path(temp.name)
 
-    def test_node_uses_declared_package_manager_and_safe_scripts(self) -> None:
+    def test_node_uses_declared_package_manager_and_recognized_scripts(self) -> None:
         temp, root = self.make_repo()
         self.addCleanup(temp.cleanup)
         (root / "package.json").write_text(
@@ -77,7 +79,7 @@ class ProjectChecksTests(unittest.TestCase):
         self.assertIn(("cargo", "fmt", "--", "--check"), commands)
         self.assertIn(("cargo", "test", "--all-features"), commands)
 
-    def test_makefile_targets_are_conservative(self) -> None:
+    def test_makefile_targets_are_recognized_but_not_treated_as_safe(self) -> None:
         temp, root = self.make_repo()
         self.addCleanup(temp.cleanup)
         (root / "Makefile").write_text(
@@ -92,6 +94,74 @@ class ProjectChecksTests(unittest.TestCase):
         self.assertIn(("make", "check"), commands)
         self.assertIn(("make", "test"), commands)
         self.assertNotIn(("make", "deploy"), commands)
+
+    def test_discovery_does_not_execute_repository_script(self) -> None:
+        temp, root = self.make_repo()
+        self.addCleanup(temp.cleanup)
+        marker = root / "executed"
+        (root / "package.json").write_text(
+            json.dumps(
+                {
+                    "scripts": {
+                        "test": (
+                            f"{sys.executable} -c "
+                            f"\"from pathlib import Path; Path({str(marker)!r}).touch()\""
+                        )
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        result = project_checks.main([str(root)])
+
+        self.assertEqual(0, result)
+        self.assertFalse(marker.exists())
+
+    def test_run_checks_refuses_execution_without_repository_trust(self) -> None:
+        temp, root = self.make_repo()
+        self.addCleanup(temp.cleanup)
+        checks = [project_checks.Check("test", "package.json", ("npm", "run", "test"))]
+
+        with mock.patch.object(project_checks.subprocess, "run") as run:
+            with self.assertRaises(PermissionError):
+                project_checks.run_checks(root, checks, 10)
+
+        run.assert_not_called()
+
+    def test_cli_run_requires_explicit_repository_trust(self) -> None:
+        temp, root = self.make_repo()
+        self.addCleanup(temp.cleanup)
+        (root / "Makefile").write_text("test:\n\t@echo test\n", encoding="utf-8")
+
+        with mock.patch.object(project_checks.subprocess, "run") as run:
+            with self.assertRaises(SystemExit) as raised:
+                project_checks.main([str(root), "--run"])
+
+        self.assertEqual(2, raised.exception.code)
+        run.assert_not_called()
+
+    def test_trusted_execution_runs_discovered_command(self) -> None:
+        temp, root = self.make_repo()
+        self.addCleanup(temp.cleanup)
+        checks = [project_checks.Check("test", "Makefile", ("make", "test"))]
+
+        completed = subprocess.CompletedProcess(("make", "test"), 0)
+        with mock.patch.object(project_checks.subprocess, "run", return_value=completed) as run:
+            result = project_checks.run_checks(
+                root,
+                checks,
+                10,
+                trust_repository=True,
+            )
+
+        self.assertEqual(0, result)
+        run.assert_called_once_with(
+            ("make", "test"),
+            cwd=root,
+            check=False,
+            timeout=10,
+        )
 
     def test_empty_repository_has_no_checks(self) -> None:
         temp, root = self.make_repo()

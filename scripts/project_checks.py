@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Discover conservative project quality checks without installing dependencies."""
+"""Discover project quality checks without installing dependencies."""
 
 from __future__ import annotations
 
@@ -239,7 +239,25 @@ def discover_checks(root: Path) -> list[Check]:
     return _dedupe(checks)
 
 
-def run_checks(root: Path, checks: list[Check], timeout: int) -> int:
+def run_checks(
+    root: Path,
+    checks: list[Check],
+    timeout: int,
+    *,
+    trust_repository: bool = False,
+) -> int:
+    if not trust_repository:
+        raise PermissionError(
+            "refusing to execute repository checks without explicit repository trust"
+        )
+
+    print(
+        "WARNING: executing repository-controlled checks from a repository you explicitly "
+        "marked as trusted. These commands may run arbitrary code, access inherited "
+        "environment variables, files, and network resources, and cause side effects.",
+        file=sys.stderr,
+    )
+
     failed = False
     for check in checks:
         print(f"\n[{check.category}] {check.source}")
@@ -267,7 +285,7 @@ def run_checks(root: Path, checks: list[Check], timeout: int) -> int:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Discover conservative quality checks from repository configuration."
+        description="Discover quality-check candidates from repository configuration."
     )
     parser.add_argument("path", nargs="?", default=".", help="repository path")
     parser.add_argument(
@@ -277,7 +295,19 @@ def _parser() -> argparse.ArgumentParser:
         help="limit output or execution to one or more categories",
     )
     parser.add_argument("--json", action="store_true", help="print discovered checks as JSON")
-    parser.add_argument("--run", action="store_true", help="execute discovered checks")
+    parser.add_argument(
+        "--run",
+        action="store_true",
+        help="execute discovered checks; requires --trust-repository",
+    )
+    parser.add_argument(
+        "--trust-repository",
+        action="store_true",
+        help=(
+            "acknowledge that repository-defined checks may execute arbitrary "
+            "repository-controlled code"
+        ),
+    )
     parser.add_argument(
         "--timeout",
         type=int,
@@ -293,6 +323,13 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.json and args.run:
         parser.error("--json and --run cannot be combined")
+    if args.trust_repository and not args.run:
+        parser.error("--trust-repository requires --run")
+    if args.run and not args.trust_repository:
+        parser.error(
+            "--run requires --trust-repository because discovered checks may execute "
+            "repository-controlled code"
+        )
     if args.timeout <= 0:
         parser.error("--timeout must be positive")
 
@@ -311,15 +348,24 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if not checks:
-        print("No conservative checks discovered.")
+        print("No candidate checks discovered.")
         return 0
 
     if not args.run:
         for check in checks:
             print(f"[{check.category}] {check.source}: {check.display()}")
+        print(
+            "\nDiscovery only: no commands were executed. Command names are not a safety "
+            "boundary; execute only after establishing trust in the repository."
+        )
         return 0
 
-    return run_checks(root.resolve(), checks, args.timeout)
+    return run_checks(
+        root.resolve(),
+        checks,
+        args.timeout,
+        trust_repository=args.trust_repository,
+    )
 
 
 if __name__ == "__main__":

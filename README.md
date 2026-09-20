@@ -211,15 +211,19 @@ Inspect a repository and print conservative quality commands without running the
 python scripts/project_checks.py /path/to/repository
 ```
 
-Execute discovered checks only when you explicitly opt in:
+Discovery is read-only: the helper prints candidate commands and does not execute them or install dependencies.
+
+Command names such as `test`, `check`, or `lint` are not a security boundary. Make targets, package scripts, test runners, build tools, wrappers, plugins, and compiler hooks may execute arbitrary repository-controlled code.
+
+Only after you have established trust in the repository, execution requires both flags:
 
 ```bash
-python scripts/project_checks.py /path/to/repository --run
+python scripts/project_checks.py /path/to/repository --run --trust-repository
 ```
 
-The helper never installs dependencies.
+The explicit trust flag is intentional. Running checks can access inherited environment variables, local files, and network resources and can cause side effects.
 
-It recognizes common project signals across Python, JavaScript/TypeScript, Go, Rust, JVM projects, .NET, Swift, Dart/Flutter, Make-based projects, and repository-defined scripts.
+The helper recognizes common project signals across Python, JavaScript/TypeScript, Go, Rust, JVM projects, .NET, Swift, Dart/Flutter, Make-based projects, and repository-defined scripts.
 
 ### Validate this repository
 

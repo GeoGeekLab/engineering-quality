@@ -31,7 +31,7 @@ Before editing code:
 5. Identify likely verification commands from project configuration.
 6. Note compatibility, security, concurrency, persistence, and migration boundaries that may be affected.
 
-Prefer repository-defined commands over generic commands. If the repository does not make its checks obvious, use `scripts/project_checks.py` to discover conservative candidates without installing anything.
+Prefer repository-defined commands over generic commands. If the repository does not make its checks obvious, use `scripts/project_checks.py` to discover candidates without executing them or installing anything. Treat discovered command names as labels, not proof that execution is safe.
 
 Read [change discipline](references/change-discipline.md) when the task touches more than one concern or starts expanding in scope.
 
@@ -98,6 +98,8 @@ Use the strongest relevant checks available, usually in this order:
 Do not claim a check passed unless it was actually run and its result observed.
 
 Do not install dependencies, update lockfiles, rewrite generated files, or run destructive commands merely to satisfy verification unless the task requires that action.
+
+Before executing repository-defined checks, establish that the repository is trusted for code execution. Test runners, build systems, package scripts, wrappers, compiler hooks, and similarly named "check" commands may execute arbitrary repository-controlled code. If trust is not established, keep verification to inspection or use an appropriately isolated environment without sensitive credentials or unnecessary network access.
 
 Read [verification](references/verification.md) for evidence rules and failure handling.
 
