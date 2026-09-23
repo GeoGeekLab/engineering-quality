@@ -12,6 +12,7 @@ import shlex
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +49,7 @@ SUPPORTED_CHECKS = {
     "changed_files_include",
     "changed_files_subset",
     "command",
+    "command_no_changes",
     "file_absent",
     "file_contains",
     "file_exists",
@@ -55,6 +57,7 @@ SUPPORTED_CHECKS = {
     "file_unchanged",
     "final_contains_all",
     "final_contains_any",
+    "final_not_claim_any",
     "final_not_contains_any",
 }
 
@@ -149,7 +152,7 @@ def validate_cases(cases: list[dict[str, Any]]) -> list[str]:
                 errors.append(f"{check_label}: unsupported check type {check_type!r}")
                 continue
 
-            if check_type == "command":
+            if check_type in {"command", "command_no_changes"}:
                 argv = check.get("argv")
                 if not isinstance(argv, list) or not argv or not all(
                     isinstance(item, str) and item for item in argv
@@ -158,6 +161,19 @@ def validate_cases(cases: list[dict[str, Any]]) -> list[str]:
                 repeat = check.get("repeat", 1)
                 if not isinstance(repeat, int) or repeat < 1 or repeat > 20:
                     errors.append(f"{check_label}: repeat must be between 1 and 20")
+                if (
+                    isinstance(argv, list)
+                    and len(argv) >= 3
+                    and argv[0] == "{python}"
+                    and argv[1] == "-c"
+                    and isinstance(argv[2], str)
+                ):
+                    try:
+                        compile(argv[2], f"<{check_label}>", "exec")
+                    except SyntaxError as exc:
+                        errors.append(
+                            f"{check_label}: invalid inline Python: {exc.msg}"
+                        )
             elif check_type in {"changed_files_include", "changed_files_subset"}:
                 paths = check.get("paths")
                 if not isinstance(paths, list) or not all(
@@ -182,6 +198,7 @@ def validate_cases(cases: list[dict[str, Any]]) -> list[str]:
             elif check_type in {
                 "final_contains_all",
                 "final_contains_any",
+                "final_not_claim_any",
                 "final_not_contains_any",
             }:
                 terms = check.get("terms")
@@ -324,6 +341,7 @@ def run_agent(
             "EQ_EVAL_PASSED_ENV": ",".join(pass_env),
         }
     )
+    started = time.monotonic()
     try:
         completed = subprocess.run(
             argv,
@@ -341,6 +359,7 @@ def run_agent(
             "stdout": completed.stdout,
             "stderr": completed.stderr,
             "timed_out": False,
+            "duration_seconds": time.monotonic() - started,
         }
     except subprocess.TimeoutExpired as exc:
         return {
@@ -349,6 +368,7 @@ def run_agent(
             "stdout": exc.stdout or "",
             "stderr": exc.stderr or "",
             "timed_out": True,
+            "duration_seconds": time.monotonic() - started,
         }
 
 
@@ -361,6 +381,43 @@ def _read_optional(path: Path) -> str | None:
         return path.read_text(encoding="utf-8")
     except (OSError, UnicodeError):
         return None
+
+
+NEGATION_TOKENS = {
+    "not",
+    "never",
+    "without",
+    "cannot",
+    "can't",
+    "isn't",
+    "wasn't",
+    "aren't",
+    "weren't",
+    "couldn't",
+    "shouldn't",
+    "wouldn't",
+}
+
+
+def _is_negated_occurrence(prefix: str) -> bool:
+    clause = re.split(r"[.!?;\n]", prefix)[-1].casefold()
+    tokens = re.findall(r"[a-z]+(?:['’][a-z]+)?", clause)
+    if tokens[-2:] == ["not", "only"]:
+        return False
+    return any(token in NEGATION_TOKENS for token in tokens[-3:])
+
+
+def _unnegated_term_matches(text: str, terms: list[str]) -> list[str]:
+    matches: list[str] = []
+    for term in terms:
+        pattern = re.compile(re.escape(term), re.IGNORECASE)
+        for match in pattern.finditer(text):
+            prefix = text[max(0, match.start() - 80):match.start()]
+            if _is_negated_occurrence(prefix):
+                continue
+            matches.append(term)
+            break
+    return matches
 
 
 def evaluate_check(
@@ -436,6 +493,7 @@ def evaluate_check(
     if check_type in {
         "final_contains_all",
         "final_contains_any",
+        "final_not_claim_any",
         "final_not_contains_any",
     }:
         haystack = final_output.casefold()
@@ -445,6 +503,9 @@ def evaluate_check(
             passed = len(matches) == len(terms)
         elif check_type == "final_contains_any":
             passed = bool(matches)
+        elif check_type == "final_not_claim_any":
+            matches = _unnegated_term_matches(final_output, check["terms"])
+            passed = not matches
         else:
             passed = not matches
         result.update(
@@ -456,7 +517,7 @@ def evaluate_check(
         )
         return result
 
-    if check_type == "command":
+    if check_type in {"command", "command_no_changes"}:
         if not allow_workspace_execution:
             result.update(
                 {
@@ -480,6 +541,7 @@ def evaluate_check(
         ) as home_directory:
             check_env = _isolated_environment(home=Path(home_directory))
             for _ in range(repeat):
+                execution_before = snapshot_workspace(workspace)
                 try:
                     completed = subprocess.run(
                         argv,
@@ -498,6 +560,15 @@ def evaluate_check(
                     }
                     if completed.returncode != expected_exit:
                         passed = False
+                    if check_type == "command_no_changes":
+                        execution_after = snapshot_workspace(workspace)
+                        generated_changes = changed_files(
+                            execution_before,
+                            execution_after,
+                        )
+                        execution["changed_files"] = generated_changes
+                        if generated_changes:
+                            passed = False
                 except subprocess.TimeoutExpired as exc:
                     execution = {
                         "exit_code": 124,
@@ -531,6 +602,7 @@ def evaluate_case(
     keep_workspace: bool,
     workspace_parent: Path | None,
     pass_env: tuple[str, ...] = (),
+    run_index: int = 1,
 ) -> dict[str, Any]:
     if keep_workspace:
         workspace = Path(
@@ -603,6 +675,7 @@ def evaluate_case(
 
         result = {
             "id": case["id"],
+            "run_index": run_index,
             "status": status,
             "task": case["task"],
             "agent": agent,
@@ -714,6 +787,12 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--agent-timeout", type=int, default=900)
     parser.add_argument("--check-timeout", type=int, default=120)
     parser.add_argument(
+        "--repeat",
+        type=int,
+        default=1,
+        help="repeat every selected case this many times; each repetition gets a fresh workspace",
+    )
+    parser.add_argument(
         "--allow-workspace-execution",
         action="store_true",
         help=(
@@ -745,6 +824,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.agent_timeout <= 0 or args.check_timeout <= 0:
         parser.error("timeouts must be positive")
+    if args.repeat < 1 or args.repeat > 100:
+        parser.error("--repeat must be between 1 and 100")
     invalid_env_names = [
         name for name in args.pass_env if not ENV_NAME_RE.fullmatch(name)
     ]
@@ -801,7 +882,9 @@ def main(argv: list[str] | None = None) -> int:
             keep_workspace=args.keep_workspaces,
             workspace_parent=args.workspace_parent,
             pass_env=tuple(args.pass_env),
+            run_index=run_index,
         )
+        for run_index in range(1, args.repeat + 1)
         for case in cases
     ]
 
