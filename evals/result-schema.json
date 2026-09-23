@@ -63,6 +63,10 @@
           "id": {
             "type": "string"
           },
+          "run_index": {
+            "type": "integer",
+            "minimum": 1
+          },
           "status": {
             "enum": [
               "passed",
