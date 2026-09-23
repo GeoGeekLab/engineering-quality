@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import shlex
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -376,6 +377,32 @@ class EvalRunnerTests(unittest.TestCase):
             self.assertTrue((Path(directory) / "references" / "verification.md").is_file())
             self.assertFalse((Path(directory) / "evals").exists())
             self.assertFalse((Path(directory) / "tests").exists())
+
+    def test_flaky_fixture_does_not_shadow_stdlib_token_module(self) -> None:
+        cases = run_evals.load_cases(ROOT / "evals" / "cases.json")
+        case = next(case for case in cases if case["id"] == "flaky-test")
+
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            run_evals.materialize_fixture(case, workspace)
+            self.assertFalse((workspace / "token.py").exists())
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    "-c",
+                    (
+                        "from token_value import token; "
+                        "assert token('job', 7) == 'job-0007'"
+                    ),
+                ],
+                cwd=workspace,
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+
+        self.assertEqual(0, completed.returncode, completed.stderr)
 
     def test_repository_cases_validate(self) -> None:
         cases = run_evals.load_cases(ROOT / "evals" / "cases.json")
