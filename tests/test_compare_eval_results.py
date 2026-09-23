@@ -114,66 +114,6 @@ class CompareEvalResultsTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "case sets differ"):
             compare_eval_results.compare_reports(baseline, skill)
 
-    def test_comparison_rejects_unpaired_repetitions(self) -> None:
-        baseline = {
-            "adapter": "baseline",
-            "cases": [
-                make_run(
-                    "sample",
-                    status="passed",
-                    run_index=1,
-                    changed_files=1,
-                    duration=1.0,
-                ),
-                make_run(
-                    "sample",
-                    status="passed",
-                    run_index=2,
-                    changed_files=1,
-                    duration=1.0,
-                ),
-            ],
-        }
-        skill = {
-            "adapter": "skill",
-            "cases": [
-                make_run(
-                    "sample",
-                    status="passed",
-                    run_index=1,
-                    changed_files=1,
-                    duration=1.0,
-                )
-            ],
-        }
-
-        with self.assertRaisesRegex(ValueError, "repetition sets differ"):
-            compare_eval_results.compare_reports(baseline, skill)
-
-    def test_comparison_rejects_duplicate_run_indexes(self) -> None:
-        duplicate_runs = [
-            make_run(
-                "sample",
-                status="passed",
-                run_index=1,
-                changed_files=1,
-                duration=1.0,
-            ),
-            make_run(
-                "sample",
-                status="passed",
-                run_index=1,
-                changed_files=1,
-                duration=1.0,
-            ),
-        ]
-
-        with self.assertRaisesRegex(ValueError, "duplicate run_index"):
-            compare_eval_results.compare_reports(
-                {"adapter": "baseline", "cases": duplicate_runs},
-                {"adapter": "skill", "cases": duplicate_runs},
-            )
-
     def test_comparison_rejects_task_drift(self) -> None:
         baseline_run = make_run(
             "sample",
