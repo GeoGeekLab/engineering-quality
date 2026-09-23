@@ -81,6 +81,19 @@ class EvalRunnerTests(unittest.TestCase):
         self.assertEqual(str(home), env["HOME"])
         self.assertEqual(str(home), env["USERPROFILE"])
 
+    def test_validate_cases_rejects_invalid_inline_python_check(self) -> None:
+        case = self.sample_case()
+        case["checks"] = [
+            {
+                "type": "command",
+                "argv": ["{python}", "-c", "if True print('bad')"],
+            }
+        ]
+
+        errors = run_evals.validate_cases([case])
+
+        self.assertTrue(any("invalid inline Python" in error for error in errors))
+
     def test_validate_cases_rejects_unsafe_fixture_path(self) -> None:
         case = self.sample_case()
         case["fixture"]["files"] = {"../escape.py": "bad\n"}
@@ -208,6 +221,24 @@ class EvalRunnerTests(unittest.TestCase):
 
         self.assertEqual("passed", result["status"])
         self.assertEqual([], result["matched"])
+
+    def test_final_not_claim_any_does_not_treat_not_only_as_negation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            result = run_evals.evaluate_check(
+                {
+                    "type": "final_not_claim_any",
+                    "terms": ["fully verified"],
+                },
+                workspace=workspace,
+                before={},
+                after={},
+                final_output="The repository is not only fully verified but release-ready.",
+                allow_workspace_execution=False,
+                command_timeout=30,
+            )
+
+        self.assertEqual("failed", result["status"])
 
     def test_final_not_claim_any_rejects_positive_claim(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
