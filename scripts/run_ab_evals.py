@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -174,7 +176,7 @@ def main(argv: list[str] | None = None) -> int:
             "invalid --pass-env names: " + ", ".join(sorted(set(invalid_env_names)))
         )
 
-    missing_env_names = [name for name in args.pass_env if name not in run_evals.os.environ]
+    missing_env_names = [name for name in args.pass_env if name not in os.environ]
     if missing_env_names:
         parser.error(
             "--pass-env variables are not set: "
@@ -189,7 +191,7 @@ def main(argv: list[str] | None = None) -> int:
     errors = run_evals.validate_cases(cases)
     if errors:
         for error in errors:
-            print(f"ERROR: {error}", file=run_evals.sys.stderr)
+            print(f"ERROR: {error}", file=sys.stderr)
         return 1
 
     try:
