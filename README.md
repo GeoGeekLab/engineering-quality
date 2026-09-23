@@ -2,7 +2,7 @@
 
 # engineering-quality
 
-**Evidence-first engineering quality for coding agents.**
+**Engineering quality for coding agents.**
 
 A portable Agent Skill for **Codex, Claude Code, ChatGPT, and other coding agents** that makes implementation, code review, testing, debugging, refactoring, compatibility, and security work more disciplined and verifiable.
 
