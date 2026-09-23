@@ -132,51 +132,42 @@ Each case receives a fresh runtime Skill staging directory. The harness hashes i
 
 The native adapter can run the same task without exposing the staged Skill. The baseline is created by removing the Skill from the host environment, not by adding a prompt that tells the model to ignore it.
 
-Keep the host, explicit model ID, case set, credentials, execution flags, and task text identical between conditions.
+Keep the host, explicit model ID, case set, credentials, execution flags, and task text identical between conditions. Use `--repeat` when you need repeated independent trials; every repetition receives a fresh fixture workspace.
 
-For comparative runs, prefer the paired runner. It executes the two conditions adjacent to each other for every case and alternates which condition goes first across cases and repetitions. This reduces systematic time/order bias relative to running one complete condition and then the other.
+Codex example:
 
 ```bash
-python scripts/run_ab_evals.py \
-  --baseline-agent-command '{python} {repo}/scripts/host_eval_adapter.py codex --model MODEL --skill-mode disabled' \
-  --skill-agent-command '{python} {repo}/scripts/host_eval_adapter.py codex --model MODEL --skill-mode enabled' \
-  --baseline-label codex-MODEL-no-skill \
-  --skill-label codex-MODEL-skill \
+python scripts/run_evals.py \
+  --agent-command '{python} {repo}/scripts/host_eval_adapter.py codex --model MODEL --skill-mode disabled' \
+  --adapter-label codex-MODEL-no-skill \
   --pass-env CODEX_API_KEY \
   --repeat 5 \
   --allow-workspace-execution \
-  --output-dir eval-results/codex-MODEL
+  --output eval-results/codex-MODEL-no-skill.json
+
+python scripts/run_evals.py \
+  --agent-command '{python} {repo}/scripts/host_eval_adapter.py codex --model MODEL --skill-mode enabled' \
+  --adapter-label codex-MODEL-skill \
+  --pass-env CODEX_API_KEY \
+  --repeat 5 \
+  --allow-workspace-execution \
+  --output eval-results/codex-MODEL-skill.json
 ```
 
-The output directory contains:
+Claude Code uses the same `--skill-mode disabled|enabled` switch on `host_eval_adapter.py`.
 
-- `baseline.json` — raw no-Skill evidence,
-- `skill.json` — raw Skill-enabled evidence,
-- `experiment.json` — pairing and execution-order metadata,
-- `comparison.md` — deterministic case/check rates, diff scope, and wall-clock comparison.
+Compare the two reports:
 
-`scripts/compare_eval_results.py` remains available for comparing two previously produced reports. It rejects mismatched case sets, task drift, duplicate run indexes, and unpaired repetition sets.
+```bash
+python scripts/compare_eval_results.py \
+  eval-results/codex-MODEL-no-skill.json \
+  eval-results/codex-MODEL-skill.json \
+  --output eval-results/codex-MODEL-comparison.md
+```
 
-### Manual real-host smoke workflow
+The comparison reports deterministic case pass rates, deterministic check-type pass rates, mean changed-file counts, and mean agent wall-clock time. It deliberately does not convert the qualitative `must_do` / `must_not_do` rubric into an automatic score. The infrastructure-only `skill_payload_integrity` check is excluded from comparative check rates.
 
-`.github/workflows/real-host-ab.yml` provides a manual Codex smoke path once that workflow is present on the repository default branch.
-
-Its defaults are deliberately explicit rather than floating:
-
-- model: `gpt-5.6`,
-- Codex CLI: `0.156.1`,
-- case set: all 14 scenarios,
-- repeat: 1, producing 28 agent runs.
-
-The workflow also offers a six-case `high-signal` subset and repeat counts of 3 or 5. Larger repetitions increase API usage substantially and must be selected explicitly.
-
-The workflow requires a repository secret named `CODEX_API_KEY`. Use a credential intended for unattended Codex evaluation rather than a broad personal credential. The runner forwards only that named variable to the host adapter; deterministic post-run command checks receive a narrower environment without the key.
-
-The workflow records requested and observed Codex versions, model ID, repository SHA, repeat count, and case set in `metadata.json`, uploads the raw evidence for seven days, and writes the comparison table to the GitHub Actions job summary.
-
-The comparison deliberately does not convert the qualitative `must_do` / `must_not_do` rubric into an automatic score. The infrastructure-only `skill_payload_integrity` check is also excluded from comparative check rates.
-
-For publishable evidence, retain the raw JSON reports and review qualitative rubric items separately. Token usage is not currently normalized across host CLIs, so wall-clock time is the portable cost signal recorded by the harness.
+For publishable evidence, run both conditions close enough together to reduce host/model drift, retain the raw JSON reports, and review qualitative rubric items separately. Token usage is not currently normalized across host CLIs, so wall-clock time is the portable cost signal recorded by the harness.
 
 See [host compatibility](../docs/compatibility.md) for the dated vendor documentation basis.
 
