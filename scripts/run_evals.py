@@ -49,6 +49,7 @@ SUPPORTED_CHECKS = {
     "changed_files_include",
     "changed_files_subset",
     "command",
+    "command_no_changes",
     "file_absent",
     "file_contains",
     "file_exists",
@@ -56,6 +57,7 @@ SUPPORTED_CHECKS = {
     "file_unchanged",
     "final_contains_all",
     "final_contains_any",
+    "final_not_claim_any",
     "final_not_contains_any",
 }
 
@@ -150,7 +152,7 @@ def validate_cases(cases: list[dict[str, Any]]) -> list[str]:
                 errors.append(f"{check_label}: unsupported check type {check_type!r}")
                 continue
 
-            if check_type == "command":
+            if check_type in {"command", "command_no_changes"}:
                 argv = check.get("argv")
                 if not isinstance(argv, list) or not argv or not all(
                     isinstance(item, str) and item for item in argv
@@ -183,6 +185,7 @@ def validate_cases(cases: list[dict[str, Any]]) -> list[str]:
             elif check_type in {
                 "final_contains_all",
                 "final_contains_any",
+                "final_not_claim_any",
                 "final_not_contains_any",
             }:
                 terms = check.get("terms")
@@ -367,6 +370,32 @@ def _read_optional(path: Path) -> str | None:
         return None
 
 
+NEGATION_PREFIX_RE = re.compile(
+    r"(?:\\bnot\\b|\\bnever\\b|\\bwithout\\b|\\bcannot\\b|\\bcan['’]?t\\b|"
+    r"\\bisn['’]?t\\b|\\bwasn['’]?t\\b|\\baren['’]?t\\b|\\bweren['’]?t\\b|"
+    r"\\bcouldn['’]?t\\b|\\bshouldn['’]?t\\b|\\bwouldn['’]?t\\b)"
+    r"(?:\\W+\\w+){0,2}\\W*$",
+    re.IGNORECASE,
+)
+
+
+def _unnegated_term_matches(text: str, terms: list[str]) -> list[str]:
+    matches: list[str] = []
+    for term in terms:
+        pattern = re.compile(re.escape(term), re.IGNORECASE)
+        for match in pattern.finditer(text):
+            prefix = text[max(0, match.start() - 80):match.start()]
+            prefix = re.split(r"[.!?;\\n]", prefix)[-1]
+            if re.search(r"\\bnot\\s+only\\W*$", prefix, re.IGNORECASE):
+                matches.append(term)
+                break
+            if NEGATION_PREFIX_RE.search(prefix):
+                continue
+            matches.append(term)
+            break
+    return matches
+
+
 def evaluate_check(
     check: dict[str, Any],
     *,
@@ -440,6 +469,7 @@ def evaluate_check(
     if check_type in {
         "final_contains_all",
         "final_contains_any",
+        "final_not_claim_any",
         "final_not_contains_any",
     }:
         haystack = final_output.casefold()
@@ -449,6 +479,9 @@ def evaluate_check(
             passed = len(matches) == len(terms)
         elif check_type == "final_contains_any":
             passed = bool(matches)
+        elif check_type == "final_not_claim_any":
+            matches = _unnegated_term_matches(final_output, check["terms"])
+            passed = not matches
         else:
             passed = not matches
         result.update(
@@ -460,7 +493,7 @@ def evaluate_check(
         )
         return result
 
-    if check_type == "command":
+    if check_type in {"command", "command_no_changes"}:
         if not allow_workspace_execution:
             result.update(
                 {
@@ -484,6 +517,7 @@ def evaluate_check(
         ) as home_directory:
             check_env = _isolated_environment(home=Path(home_directory))
             for _ in range(repeat):
+                execution_before = snapshot_workspace(workspace)
                 try:
                     completed = subprocess.run(
                         argv,
@@ -502,6 +536,15 @@ def evaluate_check(
                     }
                     if completed.returncode != expected_exit:
                         passed = False
+                    if check_type == "command_no_changes":
+                        execution_after = snapshot_workspace(workspace)
+                        generated_changes = changed_files(
+                            execution_before,
+                            execution_after,
+                        )
+                        execution["changed_files"] = generated_changes
+                        if generated_changes:
+                            passed = False
                 except subprocess.TimeoutExpired as exc:
                     execution = {
                         "exit_code": 124,
