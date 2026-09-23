@@ -21,7 +21,7 @@ A fake or deterministic adapter used by unit tests proves only that the harness 
 
 ## Case structure
 
-`cases.json` contains 14 executable scenarios. Each case defines:
+`cases.json` contains 17 executable scenarios. Each case defines:
 
 - `id`: stable kebab-case identifier,
 - `task`: the instruction exposed to the agent,
@@ -44,8 +44,9 @@ The runner currently supports:
 - file existence and absence,
 - unchanged-file assertions,
 - required or forbidden file content,
-- final-output term assertions,
-- executable commands with optional repetition.
+- final-output term assertions, including negation-aware forbidden-claim checks,
+- executable commands with optional repetition,
+- idempotence checks that run a generator or formatter and fail if it produces a diff.
 
 Executable commands are useful for regression tests, compatibility tests, generators, and repeated flaky-test checks. They are not treated as inherently safe.
 
@@ -201,15 +202,16 @@ The current scenarios cover:
 - public-contract migration,
 - incorrect abstraction pressure,
 - honest verification reporting,
-- path traversal boundaries,
+- path traversal, symlink, TOCTOU, and tenant-authorization boundaries,
 - speculative performance optimization,
-- bounded concurrency and ordering,
+- bounded concurrency, ordering, and failure cleanup,
 - behavior-preserving refactoring,
 - unnecessary dependency pressure,
 - flaky-test repair,
-- mixed-version database migration,
-- generated-code source-of-truth changes,
-- swallowed errors,
-- uncontrolled scope expansion.
+- mixed-version and rollback-safe database migration,
+- generated-code source-of-truth changes and generator-drift detection,
+- swallowed errors and public error-contract compatibility,
+- blocked verification evidence,
+- uncontrolled scope expansion in the presence of a known unrelated failure.
 
 When the skill contract changes, add or strengthen a case that can distinguish the old behavior from the intended behavior. Prefer executable invariants over prose-only expectations when the behavior can be measured.
