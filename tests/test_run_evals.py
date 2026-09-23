@@ -107,7 +107,9 @@ class EvalRunnerTests(unittest.TestCase):
             )
 
         self.assertEqual("passed", result["status"])
+        self.assertEqual(1, result["run_index"])
         self.assertEqual(["solution.py"], result["changed_files"])
+        self.assertGreaterEqual(result["agent"]["duration_seconds"], 0)
         self.assertTrue(all(check["status"] == "passed" for check in result["checks"]))
 
     def test_command_checks_are_incomplete_without_execution_opt_in(self) -> None:
@@ -200,6 +202,18 @@ class EvalRunnerTests(unittest.TestCase):
             ["CODEX_API_KEY", "CUSTOM_PROVIDER"],
             report["forwarded_environment"],
         )
+
+    def test_repeat_defaults_to_one_and_accepts_explicit_count(self) -> None:
+        parser = run_evals._parser()
+
+        self.assertEqual(1, parser.parse_args([]).repeat)
+        self.assertEqual(5, parser.parse_args(["--repeat", "5"]).repeat)
+
+    def test_cli_rejects_invalid_repeat(self) -> None:
+        with self.assertRaises(SystemExit) as raised:
+            run_evals.main(["--validate-only", "--repeat", "0"])
+
+        self.assertEqual(2, raised.exception.code)
 
     def test_cli_rejects_requested_environment_that_is_not_set(self) -> None:
         with mock.patch.dict(os.environ, {}, clear=True):
