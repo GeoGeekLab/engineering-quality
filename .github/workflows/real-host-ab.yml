@@ -8,7 +8,7 @@ on:
         required: true
         default: gpt-5.6
         type: string
-      codex-version:
+      codex_version:
         description: Exact @openai/codex CLI version
         required: true
         default: 0.156.1
@@ -22,7 +22,7 @@ on:
           - "1"
           - "3"
           - "5"
-      case-set:
+      case_set:
         description: Evaluation case set
         required: true
         default: all
@@ -55,7 +55,7 @@ jobs:
       - name: Validate experiment inputs and credentials
         env:
           CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
-          CODEX_VERSION: ${{ inputs.codex-version }}
+          CODEX_VERSION: ${{ inputs.codex_version }}
           MODEL: ${{ inputs.model }}
         run: |
           set -euo pipefail
@@ -65,7 +65,7 @@ jobs:
             exit 1
           fi
           if [[ ! "${CODEX_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
-            echo "::error::codex-version must be an exact version, not latest or a range."
+            echo "::error::codex_version must be an exact version, not latest or a range."
             exit 1
           fi
           if [[ ! "${MODEL}" =~ ^[A-Za-z0-9._-]+$ ]]; then
@@ -75,7 +75,7 @@ jobs:
 
       - name: Install pinned Codex CLI
         env:
-          CODEX_VERSION: ${{ inputs.codex-version }}
+          CODEX_VERSION: ${{ inputs.codex_version }}
         run: |
           set -euo pipefail
           npm install --global "@openai/codex@${CODEX_VERSION}"
@@ -91,7 +91,7 @@ jobs:
           CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
           MODEL: ${{ inputs.model }}
           REPEAT: ${{ inputs.repeat }}
-          CASE_SET: ${{ inputs.case-set }}
+          CASE_SET: ${{ inputs.case_set }}
         run: |
           set -euo pipefail
 
@@ -122,9 +122,9 @@ jobs:
         if: always()
         env:
           MODEL: ${{ inputs.model }}
-          CODEX_VERSION: ${{ inputs.codex-version }}
+          CODEX_VERSION: ${{ inputs.codex_version }}
           REPEAT: ${{ inputs.repeat }}
-          CASE_SET: ${{ inputs.case-set }}
+          CASE_SET: ${{ inputs.case_set }}
         run: |
           set -euo pipefail
           mkdir -p eval-results
@@ -135,13 +135,16 @@ jobs:
           from pathlib import Path
 
           def version(command):
-              completed = subprocess.run(
-                  command,
-                  check=False,
-                  stdout=subprocess.PIPE,
-                  stderr=subprocess.STDOUT,
-                  text=True,
-              )
+              try:
+                  completed = subprocess.run(
+                      command,
+                      check=False,
+                      stdout=subprocess.PIPE,
+                      stderr=subprocess.STDOUT,
+                      text=True,
+                  )
+              except FileNotFoundError:
+                  return "not installed"
               return completed.stdout.strip()
 
           metadata = {
