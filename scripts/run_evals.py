@@ -161,6 +161,19 @@ def validate_cases(cases: list[dict[str, Any]]) -> list[str]:
                 repeat = check.get("repeat", 1)
                 if not isinstance(repeat, int) or repeat < 1 or repeat > 20:
                     errors.append(f"{check_label}: repeat must be between 1 and 20")
+                if (
+                    isinstance(argv, list)
+                    and len(argv) >= 3
+                    and argv[0] == "{python}"
+                    and argv[1] == "-c"
+                    and isinstance(argv[2], str)
+                ):
+                    try:
+                        compile(argv[2], f"<{check_label}>", "exec")
+                    except SyntaxError as exc:
+                        errors.append(
+                            f"{check_label}: invalid inline Python: {exc.msg}"
+                        )
             elif check_type in {"changed_files_include", "changed_files_subset"}:
                 paths = check.get("paths")
                 if not isinstance(paths, list) or not all(
