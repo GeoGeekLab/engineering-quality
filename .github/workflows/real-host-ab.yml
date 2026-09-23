@@ -1,0 +1,179 @@
+name: Real-host Skill A/B
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Explicit Codex model ID
+        required: true
+        default: gpt-5.6
+        type: string
+      codex-version:
+        description: Exact @openai/codex CLI version
+        required: true
+        default: 0.156.1
+        type: string
+      repeat:
+        description: Independent repetitions per case and condition
+        required: true
+        default: "1"
+        type: choice
+        options:
+          - "1"
+          - "3"
+          - "5"
+      case-set:
+        description: Evaluation case set
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - high-signal
+
+permissions:
+  contents: read
+
+concurrency:
+  group: real-host-ab-${{ github.ref }}-${{ inputs.model }}
+  cancel-in-progress: false
+
+jobs:
+  codex-ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Validate experiment inputs and credentials
+        env:
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          CODEX_VERSION: ${{ inputs.codex-version }}
+          MODEL: ${{ inputs.model }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${CODEX_API_KEY}" ]]; then
+            echo "::error::Repository secret CODEX_API_KEY is required for a real Codex run."
+            exit 1
+          fi
+          if [[ ! "${CODEX_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::codex-version must be an exact version, not latest or a range."
+            exit 1
+          fi
+          if [[ ! "${MODEL}" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            echo "::error::model contains unsupported characters."
+            exit 1
+          fi
+
+      - name: Install pinned Codex CLI
+        env:
+          CODEX_VERSION: ${{ inputs.codex-version }}
+        run: |
+          set -euo pipefail
+          npm install --global "@openai/codex@${CODEX_VERSION}"
+          codex --version
+          node --version
+          npm --version
+
+      - name: Validate evaluation fixtures
+        run: python scripts/run_evals.py --validate-only
+
+      - name: Run paired Skill A/B experiment
+        env:
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          MODEL: ${{ inputs.model }}
+          REPEAT: ${{ inputs.repeat }}
+          CASE_SET: ${{ inputs.case-set }}
+        run: |
+          set -euo pipefail
+
+          case_args=()
+          if [[ "${CASE_SET}" == "high-signal" ]]; then
+            case_args+=(
+              --case minimal-bug-fix
+              --case public-contract-change
+              --case verification-evidence
+              --case security-boundary
+              --case dependency-addition
+              --case scope-expansion
+            )
+          fi
+
+          python scripts/run_ab_evals.py \
+            --baseline-agent-command "{python} {repo}/scripts/host_eval_adapter.py codex --model ${MODEL} --skill-mode disabled" \
+            --skill-agent-command "{python} {repo}/scripts/host_eval_adapter.py codex --model ${MODEL} --skill-mode enabled" \
+            --baseline-label "codex-${MODEL}-no-skill" \
+            --skill-label "codex-${MODEL}-skill" \
+            --repeat "${REPEAT}" \
+            --pass-env CODEX_API_KEY \
+            --allow-workspace-execution \
+            --output-dir eval-results \
+            "${case_args[@]}"
+
+      - name: Record experiment metadata
+        if: always()
+        env:
+          MODEL: ${{ inputs.model }}
+          CODEX_VERSION: ${{ inputs.codex-version }}
+          REPEAT: ${{ inputs.repeat }}
+          CASE_SET: ${{ inputs.case-set }}
+        run: |
+          set -euo pipefail
+          mkdir -p eval-results
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+
+          def version(command):
+              completed = subprocess.run(
+                  command,
+                  check=False,
+                  stdout=subprocess.PIPE,
+                  stderr=subprocess.STDOUT,
+                  text=True,
+              )
+              return completed.stdout.strip()
+
+          metadata = {
+              "git_sha": os.environ["GITHUB_SHA"],
+              "repository": os.environ["GITHUB_REPOSITORY"],
+              "model": os.environ["MODEL"],
+              "requested_codex_version": os.environ["CODEX_VERSION"],
+              "observed_codex_version": version(["codex", "--version"]),
+              "python_version": version(["python", "--version"]),
+              "repeat": int(os.environ["REPEAT"]),
+              "case_set": os.environ["CASE_SET"],
+          }
+          Path("eval-results/metadata.json").write_text(
+              json.dumps(metadata, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Add comparison to job summary
+        if: always()
+        run: |
+          if [[ -f eval-results/comparison.md ]]; then
+            cat eval-results/comparison.md >> "${GITHUB_STEP_SUMMARY}"
+          else
+            echo "No comparison report was produced." >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+      - name: Upload A/B evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: codex-skill-ab-${{ inputs.model }}-${{ github.run_id }}
+          path: eval-results/
+          if-no-files-found: error
+          retention-days: 7
