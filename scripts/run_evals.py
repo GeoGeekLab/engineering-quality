@@ -12,6 +12,7 @@ import shlex
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
@@ -324,6 +325,7 @@ def run_agent(
             "EQ_EVAL_PASSED_ENV": ",".join(pass_env),
         }
     )
+    started = time.monotonic()
     try:
         completed = subprocess.run(
             argv,
@@ -341,6 +343,7 @@ def run_agent(
             "stdout": completed.stdout,
             "stderr": completed.stderr,
             "timed_out": False,
+            "duration_seconds": time.monotonic() - started,
         }
     except subprocess.TimeoutExpired as exc:
         return {
@@ -349,6 +352,7 @@ def run_agent(
             "stdout": exc.stdout or "",
             "stderr": exc.stderr or "",
             "timed_out": True,
+            "duration_seconds": time.monotonic() - started,
         }
 
 
@@ -531,6 +535,7 @@ def evaluate_case(
     keep_workspace: bool,
     workspace_parent: Path | None,
     pass_env: tuple[str, ...] = (),
+    run_index: int = 1,
 ) -> dict[str, Any]:
     if keep_workspace:
         workspace = Path(
@@ -603,6 +608,7 @@ def evaluate_case(
 
         result = {
             "id": case["id"],
+            "run_index": run_index,
             "status": status,
             "task": case["task"],
             "agent": agent,
@@ -714,6 +720,12 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--agent-timeout", type=int, default=900)
     parser.add_argument("--check-timeout", type=int, default=120)
     parser.add_argument(
+        "--repeat",
+        type=int,
+        default=1,
+        help="repeat every selected case this many times; each repetition gets a fresh workspace",
+    )
+    parser.add_argument(
         "--allow-workspace-execution",
         action="store_true",
         help=(
@@ -745,6 +757,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.agent_timeout <= 0 or args.check_timeout <= 0:
         parser.error("timeouts must be positive")
+    if args.repeat < 1 or args.repeat > 100:
+        parser.error("--repeat must be between 1 and 100")
     invalid_env_names = [
         name for name in args.pass_env if not ENV_NAME_RE.fullmatch(name)
     ]
@@ -801,7 +815,9 @@ def main(argv: list[str] | None = None) -> int:
             keep_workspace=args.keep_workspaces,
             workspace_parent=args.workspace_parent,
             pass_env=tuple(args.pass_env),
+            run_index=run_index,
         )
+        for run_index in range(1, args.repeat + 1)
         for case in cases
     ]
 
