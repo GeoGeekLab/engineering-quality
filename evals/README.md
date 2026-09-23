@@ -21,7 +21,7 @@ A fake or deterministic adapter used by unit tests proves only that the harness 
 
 ## Case structure
 
-`cases.json` contains 14 executable scenarios. Each case defines:
+`cases.json` contains 17 executable scenarios. Each case defines:
 
 - `id`: stable kebab-case identifier,
 - `task`: the instruction exposed to the agent,
@@ -44,8 +44,9 @@ The runner currently supports:
 - file existence and absence,
 - unchanged-file assertions,
 - required or forbidden file content,
-- final-output term assertions,
-- executable commands with optional repetition.
+- final-output term assertions, including negation-aware forbidden-claim checks,
+- executable commands with optional repetition,
+- idempotence checks that run a generator or formatter and fail if it produces a diff.
 
 Executable commands are useful for regression tests, compatibility tests, generators, and repeated flaky-test checks. They are not treated as inherently safe.
 
@@ -128,6 +129,47 @@ Adapter unit tests validate command construction and staged-skill handling. Thos
 
 Each case receives a fresh runtime Skill staging directory. The harness hashes it before and after the agent exits. Any mutation produces a failing `skill_payload_integrity` check, so one case cannot rewrite the Skill used by later cases.
 
+### Compare Skill vs no-Skill behavior
+
+The native adapter can run the same task without exposing the staged Skill. The baseline is created by removing the Skill from the host environment, not by adding a prompt that tells the model to ignore it.
+
+Keep the host, explicit model ID, case set, credentials, execution flags, and task text identical between conditions. Use `--repeat` when you need repeated independent trials; every repetition receives a fresh fixture workspace.
+
+Codex example:
+
+```bash
+python scripts/run_evals.py \
+  --agent-command '{python} {repo}/scripts/host_eval_adapter.py codex --model MODEL --skill-mode disabled' \
+  --adapter-label codex-MODEL-no-skill \
+  --pass-env CODEX_API_KEY \
+  --repeat 5 \
+  --allow-workspace-execution \
+  --output eval-results/codex-MODEL-no-skill.json
+
+python scripts/run_evals.py \
+  --agent-command '{python} {repo}/scripts/host_eval_adapter.py codex --model MODEL --skill-mode enabled' \
+  --adapter-label codex-MODEL-skill \
+  --pass-env CODEX_API_KEY \
+  --repeat 5 \
+  --allow-workspace-execution \
+  --output eval-results/codex-MODEL-skill.json
+```
+
+Claude Code uses the same `--skill-mode disabled|enabled` switch on `host_eval_adapter.py`.
+
+Compare the two reports:
+
+```bash
+python scripts/compare_eval_results.py \
+  eval-results/codex-MODEL-no-skill.json \
+  eval-results/codex-MODEL-skill.json \
+  --output eval-results/codex-MODEL-comparison.md
+```
+
+The comparison reports deterministic case pass rates, deterministic check-type pass rates, mean changed-file counts, and mean agent wall-clock time. It deliberately does not convert the qualitative `must_do` / `must_not_do` rubric into an automatic score. The infrastructure-only `skill_payload_integrity` check is excluded from comparative check rates.
+
+For publishable evidence, run both conditions close enough together to reduce host/model drift, retain the raw JSON reports, and review qualitative rubric items separately. Token usage is not currently normalized across host CLIs, so wall-clock time is the portable cost signal recorded by the harness.
+
 See [host compatibility](../docs/compatibility.md) for the dated vendor documentation basis.
 
 ## Execution boundary
@@ -160,15 +202,16 @@ The current scenarios cover:
 - public-contract migration,
 - incorrect abstraction pressure,
 - honest verification reporting,
-- path traversal boundaries,
+- path traversal, symlink, TOCTOU, and tenant-authorization boundaries,
 - speculative performance optimization,
-- bounded concurrency and ordering,
+- bounded concurrency, ordering, and failure cleanup,
 - behavior-preserving refactoring,
 - unnecessary dependency pressure,
 - flaky-test repair,
-- mixed-version database migration,
-- generated-code source-of-truth changes,
-- swallowed errors,
-- uncontrolled scope expansion.
+- mixed-version and rollback-safe database migration,
+- generated-code source-of-truth changes and generator-drift detection,
+- swallowed errors and public error-contract compatibility,
+- blocked verification evidence,
+- uncontrolled scope expansion in the presence of a known unrelated failure.
 
 When the skill contract changes, add or strengthen a case that can distinguish the old behavior from the intended behavior. Prefer executable invariants over prose-only expectations when the behavior can be measured.
