@@ -41,6 +41,25 @@ class HostEvalAdapterTests(unittest.TestCase):
         self.assertIn("workspace-write", argv)
         self.assertEqual("fix the bug", argv[-1])
 
+    def test_codex_disabled_skill_mode_does_not_install_skill(self) -> None:
+        with mock.patch.object(host_eval_adapter, "_copy_skill") as copy_skill:
+            with mock.patch.object(host_eval_adapter, "_print_version"):
+                with mock.patch.object(
+                    host_eval_adapter.subprocess,
+                    "run",
+                    return_value=mock.Mock(returncode=0),
+                ):
+                    exit_code = host_eval_adapter.run_codex(
+                        executable="codex",
+                        task="fix",
+                        workspace=Path("."),
+                        skill_entry=Path("/tmp/staged-skill/SKILL.md"),
+                        skill_mode="disabled",
+                    )
+
+        self.assertEqual(0, exit_code)
+        copy_skill.assert_not_called()
+
     def test_codex_model_can_be_pinned(self) -> None:
         argv = host_eval_adapter.codex_argv("codex", "fix", "gpt-test")
 
@@ -62,6 +81,12 @@ class HostEvalAdapterTests(unittest.TestCase):
         self.assertIn(str(skill), argv)
         self.assertIn("-p", argv)
         self.assertEqual("fix the bug", argv[-1])
+
+    def test_claude_disabled_skill_mode_omits_skill_directory(self) -> None:
+        argv = host_eval_adapter.claude_argv("claude", "fix", None)
+
+        self.assertNotIn("--add-dir", argv)
+        self.assertEqual("fix", argv[-1])
 
     def test_claude_model_can_be_pinned(self) -> None:
         argv = host_eval_adapter.claude_argv(
