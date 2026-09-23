@@ -370,13 +370,28 @@ def _read_optional(path: Path) -> str | None:
         return None
 
 
-NEGATION_PREFIX_RE = re.compile(
-    r"(?:\\bnot\\b|\\bnever\\b|\\bwithout\\b|\\bcannot\\b|\\bcan['’]?t\\b|"
-    r"\\bisn['’]?t\\b|\\bwasn['’]?t\\b|\\baren['’]?t\\b|\\bweren['’]?t\\b|"
-    r"\\bcouldn['’]?t\\b|\\bshouldn['’]?t\\b|\\bwouldn['’]?t\\b)"
-    r"(?:\\W+\\w+){0,2}\\W*$",
-    re.IGNORECASE,
-)
+NEGATION_TOKENS = {
+    "not",
+    "never",
+    "without",
+    "cannot",
+    "can't",
+    "isn't",
+    "wasn't",
+    "aren't",
+    "weren't",
+    "couldn't",
+    "shouldn't",
+    "wouldn't",
+}
+
+
+def _is_negated_occurrence(prefix: str) -> bool:
+    clause = re.split(r"[.!?;\n]", prefix)[-1].casefold()
+    tokens = re.findall(r"[a-z]+(?:['’][a-z]+)?", clause)
+    if tokens[-2:] == ["not", "only"]:
+        return False
+    return any(token in NEGATION_TOKENS for token in tokens[-3:])
 
 
 def _unnegated_term_matches(text: str, terms: list[str]) -> list[str]:
@@ -385,11 +400,7 @@ def _unnegated_term_matches(text: str, terms: list[str]) -> list[str]:
         pattern = re.compile(re.escape(term), re.IGNORECASE)
         for match in pattern.finditer(text):
             prefix = text[max(0, match.start() - 80):match.start()]
-            prefix = re.split(r"[.!?;\\n]", prefix)[-1]
-            if re.search(r"\\bnot\\s+only\\W*$", prefix, re.IGNORECASE):
-                matches.append(term)
-                break
-            if NEGATION_PREFIX_RE.search(prefix):
+            if _is_negated_occurrence(prefix):
                 continue
             matches.append(term)
             break
