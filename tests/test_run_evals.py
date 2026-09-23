@@ -190,6 +190,96 @@ class EvalRunnerTests(unittest.TestCase):
         self.assertEqual("failed", integrity["status"])
         self.assertIn("SKILL.md", integrity["changed_files"])
 
+    def test_final_not_claim_any_ignores_negated_claim(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            result = run_evals.evaluate_check(
+                {
+                    "type": "final_not_claim_any",
+                    "terms": ["fully verified"],
+                },
+                workspace=workspace,
+                before={},
+                after={},
+                final_output="The repository is not fully verified because the service check is blocked.",
+                allow_workspace_execution=False,
+                command_timeout=30,
+            )
+
+        self.assertEqual("passed", result["status"])
+        self.assertEqual([], result["matched"])
+
+    def test_final_not_claim_any_rejects_positive_claim(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            result = run_evals.evaluate_check(
+                {
+                    "type": "final_not_claim_any",
+                    "terms": ["fully verified"],
+                },
+                workspace=workspace,
+                before={},
+                after={},
+                final_output="The repository is fully verified.",
+                allow_workspace_execution=False,
+                command_timeout=30,
+            )
+
+        self.assertEqual("failed", result["status"])
+        self.assertEqual(["fully verified"], result["matched"])
+
+    def test_command_no_changes_detects_generator_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            path = workspace / "generated.py"
+            path.write_text("value = 1\n", encoding="utf-8")
+            before = run_evals.snapshot_workspace(workspace)
+            result = run_evals.evaluate_check(
+                {
+                    "type": "command_no_changes",
+                    "argv": [
+                        "{python}",
+                        "-c",
+                        "from pathlib import Path; Path('generated.py').write_text('value = 2\\n')",
+                    ],
+                },
+                workspace=workspace,
+                before=before,
+                after=before,
+                final_output="",
+                allow_workspace_execution=True,
+                command_timeout=30,
+            )
+
+        self.assertEqual("failed", result["status"])
+        self.assertEqual(["generated.py"], result["executions"][0]["changed_files"])
+
+    def test_command_no_changes_passes_idempotent_generator(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            path = workspace / "generated.py"
+            path.write_text("value = 1\n", encoding="utf-8")
+            before = run_evals.snapshot_workspace(workspace)
+            result = run_evals.evaluate_check(
+                {
+                    "type": "command_no_changes",
+                    "argv": [
+                        "{python}",
+                        "-c",
+                        "from pathlib import Path; p = Path('generated.py'); p.write_text(p.read_text())",
+                    ],
+                },
+                workspace=workspace,
+                before=before,
+                after=before,
+                final_output="",
+                allow_workspace_execution=True,
+                command_timeout=30,
+            )
+
+        self.assertEqual("passed", result["status"])
+        self.assertEqual([], result["executions"][0]["changed_files"])
+
     def test_report_records_only_forwarded_environment_names(self) -> None:
         report = run_evals.build_report(
             [],
@@ -259,7 +349,7 @@ class EvalRunnerTests(unittest.TestCase):
     def test_repository_cases_validate(self) -> None:
         cases = run_evals.load_cases(ROOT / "evals" / "cases.json")
         self.assertEqual([], run_evals.validate_cases(cases))
-        self.assertEqual(14, len(cases))
+        self.assertEqual(17, len(cases))
 
 
 if __name__ == "__main__":
