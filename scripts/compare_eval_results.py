@@ -31,8 +31,13 @@ def _group_cases(report: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
             raise ValueError(f"case[{index}].id must be a non-empty string")
         grouped.setdefault(case_id, []).append(case)
 
-    for runs in grouped.values():
+    for case_id, runs in grouped.items():
         runs.sort(key=lambda item: item.get("run_index", 1))
+        indexes = [run.get("run_index", 1) for run in runs]
+        if not all(isinstance(index, int) and index >= 1 for index in indexes):
+            raise ValueError(f"{case_id}: run_index must be a positive integer")
+        if len(indexes) != len(set(indexes)):
+            raise ValueError(f"{case_id}: duplicate run_index values")
     return grouped
 
 
@@ -141,6 +146,17 @@ def compare_reports(
         skill_task = _task_for(skill_grouped[case_id], case_id=case_id)
         if baseline_task != skill_task:
             raise ValueError(f"{case_id}: baseline and Skill tasks differ")
+        baseline_indexes = [
+            run.get("run_index", 1) for run in baseline_grouped[case_id]
+        ]
+        skill_indexes = [
+            run.get("run_index", 1) for run in skill_grouped[case_id]
+        ]
+        if baseline_indexes != skill_indexes:
+            raise ValueError(
+                f"{case_id}: baseline and Skill repetition sets differ "
+                f"({baseline_indexes} != {skill_indexes})"
+            )
 
     baseline_runs = [
         run for case_id in sorted(baseline_grouped) for run in baseline_grouped[case_id]
