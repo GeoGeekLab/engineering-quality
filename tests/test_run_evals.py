@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import shlex
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -81,6 +82,19 @@ class EvalRunnerTests(unittest.TestCase):
         self.assertEqual(str(home), env["HOME"])
         self.assertEqual(str(home), env["USERPROFILE"])
 
+    def test_validate_cases_rejects_invalid_inline_python_check(self) -> None:
+        case = self.sample_case()
+        case["checks"] = [
+            {
+                "type": "command",
+                "argv": ["{python}", "-c", "if True print('bad')"],
+            }
+        ]
+
+        errors = run_evals.validate_cases([case])
+
+        self.assertTrue(any("invalid inline Python" in error for error in errors))
+
     def test_validate_cases_rejects_unsafe_fixture_path(self) -> None:
         case = self.sample_case()
         case["fixture"]["files"] = {"../escape.py": "bad\n"}
@@ -107,7 +121,9 @@ class EvalRunnerTests(unittest.TestCase):
             )
 
         self.assertEqual("passed", result["status"])
+        self.assertEqual(1, result["run_index"])
         self.assertEqual(["solution.py"], result["changed_files"])
+        self.assertGreaterEqual(result["agent"]["duration_seconds"], 0)
         self.assertTrue(all(check["status"] == "passed" for check in result["checks"]))
 
     def test_command_checks_are_incomplete_without_execution_opt_in(self) -> None:
@@ -188,6 +204,114 @@ class EvalRunnerTests(unittest.TestCase):
         self.assertEqual("failed", integrity["status"])
         self.assertIn("SKILL.md", integrity["changed_files"])
 
+    def test_final_not_claim_any_ignores_negated_claim(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            result = run_evals.evaluate_check(
+                {
+                    "type": "final_not_claim_any",
+                    "terms": ["fully verified"],
+                },
+                workspace=workspace,
+                before={},
+                after={},
+                final_output="The repository is not fully verified because the service check is blocked.",
+                allow_workspace_execution=False,
+                command_timeout=30,
+            )
+
+        self.assertEqual("passed", result["status"])
+        self.assertEqual([], result["matched"])
+
+    def test_final_not_claim_any_does_not_treat_not_only_as_negation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            result = run_evals.evaluate_check(
+                {
+                    "type": "final_not_claim_any",
+                    "terms": ["fully verified"],
+                },
+                workspace=workspace,
+                before={},
+                after={},
+                final_output="The repository is not only fully verified but release-ready.",
+                allow_workspace_execution=False,
+                command_timeout=30,
+            )
+
+        self.assertEqual("failed", result["status"])
+
+    def test_final_not_claim_any_rejects_positive_claim(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            result = run_evals.evaluate_check(
+                {
+                    "type": "final_not_claim_any",
+                    "terms": ["fully verified"],
+                },
+                workspace=workspace,
+                before={},
+                after={},
+                final_output="The repository is fully verified.",
+                allow_workspace_execution=False,
+                command_timeout=30,
+            )
+
+        self.assertEqual("failed", result["status"])
+        self.assertEqual(["fully verified"], result["matched"])
+
+    def test_command_no_changes_detects_generator_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            path = workspace / "generated.py"
+            path.write_text("value = 1\n", encoding="utf-8")
+            before = run_evals.snapshot_workspace(workspace)
+            result = run_evals.evaluate_check(
+                {
+                    "type": "command_no_changes",
+                    "argv": [
+                        "{python}",
+                        "-c",
+                        "from pathlib import Path; Path('generated.py').write_text('value = 2\\n')",
+                    ],
+                },
+                workspace=workspace,
+                before=before,
+                after=before,
+                final_output="",
+                allow_workspace_execution=True,
+                command_timeout=30,
+            )
+
+        self.assertEqual("failed", result["status"])
+        self.assertEqual(["generated.py"], result["executions"][0]["changed_files"])
+
+    def test_command_no_changes_passes_idempotent_generator(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            path = workspace / "generated.py"
+            path.write_text("value = 1\n", encoding="utf-8")
+            before = run_evals.snapshot_workspace(workspace)
+            result = run_evals.evaluate_check(
+                {
+                    "type": "command_no_changes",
+                    "argv": [
+                        "{python}",
+                        "-c",
+                        "from pathlib import Path; p = Path('generated.py'); p.write_text(p.read_text())",
+                    ],
+                },
+                workspace=workspace,
+                before=before,
+                after=before,
+                final_output="",
+                allow_workspace_execution=True,
+                command_timeout=30,
+            )
+
+        self.assertEqual("passed", result["status"])
+        self.assertEqual([], result["executions"][0]["changed_files"])
+
     def test_report_records_only_forwarded_environment_names(self) -> None:
         report = run_evals.build_report(
             [],
@@ -200,6 +324,18 @@ class EvalRunnerTests(unittest.TestCase):
             ["CODEX_API_KEY", "CUSTOM_PROVIDER"],
             report["forwarded_environment"],
         )
+
+    def test_repeat_defaults_to_one_and_accepts_explicit_count(self) -> None:
+        parser = run_evals._parser()
+
+        self.assertEqual(1, parser.parse_args([]).repeat)
+        self.assertEqual(5, parser.parse_args(["--repeat", "5"]).repeat)
+
+    def test_cli_rejects_invalid_repeat(self) -> None:
+        with self.assertRaises(SystemExit) as raised:
+            run_evals.main(["--validate-only", "--repeat", "0"])
+
+        self.assertEqual(2, raised.exception.code)
 
     def test_cli_rejects_requested_environment_that_is_not_set(self) -> None:
         with mock.patch.dict(os.environ, {}, clear=True):
@@ -242,10 +378,36 @@ class EvalRunnerTests(unittest.TestCase):
             self.assertFalse((Path(directory) / "evals").exists())
             self.assertFalse((Path(directory) / "tests").exists())
 
+    def test_flaky_fixture_does_not_shadow_stdlib_token_module(self) -> None:
+        cases = run_evals.load_cases(ROOT / "evals" / "cases.json")
+        case = next(case for case in cases if case["id"] == "flaky-test")
+
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            run_evals.materialize_fixture(case, workspace)
+            self.assertFalse((workspace / "token.py").exists())
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    "-c",
+                    (
+                        "from token_value import token; "
+                        "assert token('job', 7) == 'job-0007'"
+                    ),
+                ],
+                cwd=workspace,
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+
+        self.assertEqual(0, completed.returncode, completed.stderr)
+
     def test_repository_cases_validate(self) -> None:
         cases = run_evals.load_cases(ROOT / "evals" / "cases.json")
         self.assertEqual([], run_evals.validate_cases(cases))
-        self.assertEqual(14, len(cases))
+        self.assertEqual(17, len(cases))
 
 
 if __name__ == "__main__":

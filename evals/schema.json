@@ -70,6 +70,7 @@
                 "changed_files_include",
                 "changed_files_subset",
                 "command",
+                "command_no_changes",
                 "file_absent",
                 "file_contains",
                 "file_exists",
@@ -77,6 +78,7 @@
                 "file_unchanged",
                 "final_contains_all",
                 "final_contains_any",
+                "final_not_claim_any",
                 "final_not_contains_any"
               ]
             },

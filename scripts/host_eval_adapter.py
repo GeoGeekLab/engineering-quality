@@ -72,7 +72,7 @@ def codex_argv(
 def claude_argv(
     executable: str,
     task: str,
-    skill_dir: Path,
+    skill_dir: Path | None,
     model: str | None = None,
 ) -> list[str]:
     argv = [
@@ -83,9 +83,9 @@ def claude_argv(
         "--permission-prompts",
         "none",
         "--no-session-persistence",
-        "--add-dir",
-        str(skill_dir),
     ]
+    if skill_dir is not None:
+        argv.extend(("--add-dir", str(skill_dir)))
     if model:
         argv.extend(("--model", model))
     argv.extend(("-p", task))
@@ -119,13 +119,15 @@ def run_codex(
     workspace: Path,
     skill_entry: Path,
     model: str | None = None,
+    skill_mode: str = "enabled",
 ) -> int:
     with tempfile.TemporaryDirectory(prefix="engineering-quality-codex-home-") as directory:
         home = Path(directory)
-        _copy_skill(
-            skill_entry,
-            home / ".agents" / "skills" / "engineering-quality",
-        )
+        if skill_mode == "enabled":
+            _copy_skill(
+                skill_entry,
+                home / ".agents" / "skills" / "engineering-quality",
+            )
         env = _adapter_environment()
         env["HOME"] = str(home)
         env["USERPROFILE"] = str(home)
@@ -153,6 +155,7 @@ def run_claude_code(
     workspace: Path,
     skill_entry: Path,
     model: str | None = None,
+    skill_mode: str = "enabled",
 ) -> int:
     with tempfile.TemporaryDirectory(
         prefix="engineering-quality-claude-home-"
@@ -167,7 +170,12 @@ def run_claude_code(
         _print_version(executable, env, workspace)
         try:
             completed = subprocess.run(
-                claude_argv(executable, task, skill_entry.resolve().parent, model),
+                claude_argv(
+                    executable,
+                    task,
+                    skill_entry.resolve().parent if skill_mode == "enabled" else None,
+                    model,
+                ),
                 cwd=workspace,
                 env=env,
                 check=False,
@@ -190,6 +198,15 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--model",
         help="pin an explicit host model for reproducible behavioral evidence",
+    )
+    parser.add_argument(
+        "--skill-mode",
+        choices=("enabled", "disabled"),
+        default="enabled",
+        help=(
+            "enable the staged engineering-quality Skill or run a clean no-Skill "
+            "baseline; defaults to enabled for backward compatibility"
+        ),
     )
     return parser
 
@@ -214,6 +231,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.model:
         print(f"[host-adapter] model={args.model}", file=sys.stderr)
+    print(f"[host-adapter] skill-mode={args.skill_mode}", file=sys.stderr)
 
     if args.host == "codex":
         executable = args.executable or os.environ.get("EQ_CODEX_BIN", "codex")
@@ -223,6 +241,7 @@ def main(argv: list[str] | None = None) -> int:
             workspace=workspace,
             skill_entry=skill_entry,
             model=args.model,
+            skill_mode=args.skill_mode,
         )
 
     executable = args.executable or os.environ.get("EQ_CLAUDE_BIN", "claude")
@@ -232,6 +251,7 @@ def main(argv: list[str] | None = None) -> int:
         workspace=workspace,
         skill_entry=skill_entry,
         model=args.model,
+        skill_mode=args.skill_mode,
     )
 
 
