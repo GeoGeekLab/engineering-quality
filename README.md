@@ -15,7 +15,7 @@
 
 <br>
 
-<img src="assets/mascot/evi.jpg" alt="Evi" width="420">
+<img src="https://raw.githubusercontent.com/GeoGeekLab/geogeeklab-visual-identity/main/readme-artwork/v3/engineering-quality/readme-artwork.webp" alt="Evi validating an engineering patch with tools and a checklist" width="390">
 
 </div>
 <!-- GeoGeekLab VIS: existing mascot / canonical illustration retained -->
