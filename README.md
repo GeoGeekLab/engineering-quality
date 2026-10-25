@@ -18,6 +18,9 @@
 <img src="assets/mascot/evi.jpg" alt="Evi" width="420">
 
 </div>
+<!-- GeoGeekLab VIS: existing mascot / canonical illustration retained -->
+<p align="center"><sub><a href="https://github.com/GeoGeekLab/geogeeklab-visual-identity/blob/main/identity-sheets/engineering-quality.md">Evi identity system ↗</a></sub></p>
+
 
 ## What it is
 
